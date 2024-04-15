@@ -81,24 +81,24 @@ impl Component for Frame {
                     </div>
                 </div>
 
-                <div>
+                <div class="font-mono">
                     <div class="form-control text-sm text-gray-600 pt-10 pb-2 flex justify-end">
-                        <label class="cursor-pointer label font-mono">
+                        <label class="cursor-pointer label">
                         <span>{"Display full EVM words "}</span>
                         <input type="checkbox" checked=true class="checkbox checkbox-accent" />
                         </label>
                     </div>
-                    <div class="subpixel-antialiased text-gray-500 bg-gray-900 rounded-md shadow-2xl text-md">
+                    <div class="subpixel-antialiased text-gray-500 bg-gray-900 rounded-md shadow-2xl text-sm">
                         <div class="grid h-full grid-cols-3 p-4">
-                            <div class="col-span-1 pt-0 font-mono text-sm text-gray-600">
+                            <div class="col-span-1 pt-0 text-sm text-gray-600">
                                 <p class="mt-0 pt-0">{ "input:" }</p>
                                 <textarea oninput={on_text_input}
-                                    class="w-full h-full text-gray-200 placeholder-gray-500 placeholder-opacity-50 bg-transparent border-0 appearance-none resize-none focus:outline-none focus:ring-0 focus:border-0 active:border-0 pb-2"
+                                    class="w-full h-full font-mono text-gray-200 placeholder-gray-500 placeholder-opacity-50 bg-transparent border-0 appearance-none resize-none focus:outline-none focus:ring-0 focus:border-0 active:border-0 pb-2"
                                         data-gramm="false"
                                         placeholder="\n1 ether to gwei\nnow - unix(2023,12,31)">
                                 </textarea>
                             </div>
-                            <div class="col-span-1 font-mono overflow-x-auto text-right text-yellow-300 border-l border-opacity-30">
+                            <div class="col-span-1 overflow-x-auto text-right text-yellow-300 border-l border-opacity-30">
                                 <p class="pt-0 text-sm text-gray-600">{ "dec: " }</p>
                                 <div> {
                                     for self.dec.split('\n').into_iter().map(|v| {
@@ -108,7 +108,7 @@ impl Component for Frame {
                                     }
                                 </div>
                             </div>
-                            <div class="col-span-1 font-mono overflow-x-auto text-right text-green-300">
+                            <div class="col-span-1 overflow-x-auto text-right text-green-300">
                                 <p class="pt-0 text-sm text-gray-600">{ "hex: " }</p>
                                 <div> {
                                     for self.hex.split('\n').into_iter().map(|v| {
