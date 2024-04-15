@@ -1,0 +1,82 @@
+WHITESPACE = _{ " " | "\t" }
+ident = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* ~ "'"* }
+int = { ("+" | "-")? ~ ASCII_DIGIT+ }
+num = @{ int ~ ("." ~ ASCII_DIGIT*)? ~ (^"e" ~ int)? }
+hex = { ("0x" | "x") ~ ('0'..'9' | 'a'..'f' | 'A'..'F')+}
+bin = { ("0b" | "b") ~ ("0" | "1")+}
+unix = { "unix(" ~
+	('0'..'9') ~ ('0'..'9') ~ ('0'..'9')* ~ ('0'..'9')* ~ ("-" | ",") ~
+    ('0'..'9') ~ ('0'..'9')* ~ ("-" | ",") ~
+    ('0'..'9') ~ ('0'..'9')* ~ ("T" | ",")* ~
+    ('0'..'6')* ~ ('0'..'9')* ~ (":" | ",")* ~
+    ('0'..'6')* ~ ('0'..'9')* ~ (":" | ",")* ~
+    ('0'..'6')* ~ ('0'..'9')* ~ ")"
+}
+
+e  = { "e" }
+pi = { "pi" | "π" }
+tau = { "tau" | "τ" }
+now = { "now" | "current time" }
+constants = _{ pi | e | tau | now }
+
+infix = _{ subtract | add | multiply | divide | power | percentOf | percentOn | rightShift | leftShift | modulus }
+add         = { "+" | "with" | "plus" | "add" }
+subtract    = { "-" | "without" | "subtract" | "minus" }
+multiply    = { "*" | "times" | "multiply by" | "mul" }
+divide      = { "/" | "divide by" | "divide" }
+power       = { "^" | "power" }
+modulus     = { "%" | "mod" }
+rightShift  = { ">>" }
+leftShift   = { "<<" }
+percentOf   = { "percent of" | "%" ~ "of" }
+percentOn   = { "percent on" | "%" ~ "on" }
+
+function = { unix | ident ~ "(" ~ expr ~ ")" }
+atom = _{ hex | bin | constants | function | ident | convert | num | "(" ~ expr ~ ")"  }
+expr = { atom ~ (infix ~ atom)* }
+assign = { ident ~ "=" ~ expr }
+
+primary = _{ assign | expr }
+
+calculation = _{ SOI ~ primary ~ EOI }
+
+// SiUnits parser starts from here.
+
+// Time
+TIME = { NANOSECOND | MICROSECOND | MILLISECOND | SECOND | MINUTE | HOUR | DAY | WEEK | MONTH | YEAR }
+NANOSECOND = { "nanoseconds" | "nanosecond" | "nanosecs" | "nanosec" | "ns" }
+MICROSECOND = { "microseconds" | "microsecond" |  "microsecs" | "microsec" | "µs" }
+MILLISECOND = { "milliseconds" | "millisecond" | "millisecs" | "millisec" | "ms" }
+SECOND = { "seconds" | "second" | "secs" | "sec" }
+MINUTE = { "minutes" | "minute" | "min" }
+HOUR = { "hours" | "hour" | "hrs" | "hr" }
+DAY = { "days" | "day" }
+WEEK = { "weeks" | "week" | "wks" | "wk" }
+MONTH = { "months" | "month" | "mos" | "mo" }
+YEAR = { "years" | "year" | "yrs" | "yr" }
+
+// Digital Information
+DIGITALINFO = { BIT | BYTE | KILOBIT | KILOBYTE | MEGABIT | MEGABYTE | MEGABYTE | GIGABIT | GIGABYTE | TERABIT | TERABYTE }
+BIT = { "bits" | "bit" }
+BYTE = { "bytes" | "byte" }
+KILOBIT = { "kilobits" | "kilobit" | ^"kbit" }
+KILOBYTE = { "kilobytes" | "kilobyte" | ^"kb" }
+MEGABIT = { "megabits" | "megabit" | ^"mbit" }
+MEGABYTE = { "megabytes" | "megabyte" | ^"mb" }
+GIGABIT = { "gigabits" |  "gigabit" | ^"gbit" }
+GIGABYTE = { "gigabytes" | "gigabyte" |  ^"gb" }
+TERABIT = { "terabits" | "terabit" | ^"tbit" }
+TERABYTE = { "terabytes" | "terabyte" | ^"tb" }
+
+// EVM Gas
+EVMGAS = { WEI | KILOWEI | MEGAWEI | GIGAWEI | MICROETHER | MILLIETHER | ETHER }
+WEI = { "wei" | "weis" }
+KILOWEI = { "kilowei" | "kwei" }
+MEGAWEI = { "megawei" | "mwei" }
+GIGAWEI = { "gigawei" | "gwei" }
+MICROETHER = { "microether" | "µeth" }
+MILLIETHER = { "milliether" | "miliether" | "mether" }
+ETHER = { "ether" | ^"eth" }
+
+siunit = { EVMGAS | DIGITALINFO | TIME }
+convert = {num ~ siunit ~  ( "to" | "as" | "in" ) ~ siunit }
