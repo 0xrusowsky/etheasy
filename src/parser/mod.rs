@@ -1,111 +1,17 @@
 #![allow(deprecated)]
-mod convert_chart;
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime, TimeZone, Utc};
-use convert_chart::{convert, UnitType};
 use gloo_console::log;
 use pest::iterators::{Pair, Pairs};
+use pest::prec_climber::*;
 use pest::Parser;
 use pest_derive::Parser;
 
-use pest::prec_climber::*;
+mod convert_chart;
+use convert_chart::{convert, UnitType};
 
 #[derive(Parser)]
 #[grammar = "parser/grammar.pest"]
 struct Calculator;
-
-/*
-lazy_static::lazy_static! {
-    static ref PRATT_PARSER: PrattParser<Rule> = {
-        use pest::pratt_parser::{Assoc::*, Op};
-        use Rule::*;
-
-        // Precedence is defined lowest to highest
-        PrattParser::new()
-            .op(Op::infix(add, Left) | Op::infix(subtract, Left))
-            .op(Op::infix(multiply, Left) | Op::infix(divide, Left))
-            .op(Op::infix(modulus, Left))
-            .op(Op::infix(power, Right))
-            .op(Op::infix(percentOf, Left) | Op::infix(percentOn, Left))
-            .op(Op::infix(rightShift, Right) | Op::infix(leftShift, Right))
-    };
-}
-
-fn eval(expression: Pairs<Rule>) -> f64 {
-    PRATT_PARSER
-        .map_primary(|primary| match primary.as_rule() {
-            Rule::convert => {
-                let mut i = primary.into_inner();
-                let value = i.next().unwrap().as_str().parse::<f64>().unwrap();
-                // Try to figure out rule name for the conversion between units
-                // weight = kilo to gram
-                // length = kilometer to meter
-                let si_unit_type = i
-                    .clone()
-                    .next()
-                    .unwrap()
-                    .into_inner()
-                    .next()
-                    .unwrap()
-                    .as_rule();
-                let from = i
-                    .next()
-                    .unwrap()
-                    .into_inner()
-                    .next()
-                    .unwrap()
-                    .into_inner()
-                    .next()
-                    .unwrap()
-                    .as_rule();
-                let to = i
-                    .next()
-                    .unwrap()
-                    .into_inner()
-                    .next()
-                    .unwrap()
-                    .into_inner()
-                    .next()
-                    .unwrap()
-                    .as_rule();
-
-                if let (Ok(from), Ok(to)) = (
-                    format!("{:?}::{:?}", si_unit_type, from).parse::<UnitType>(),
-                    format!("{:?}::{:?}", si_unit_type, to).parse::<UnitType>(),
-                ) {
-                    convert(value, from, to)
-                } else {
-                    f64::NAN
-                }
-            }
-            Rule::function => {
-                let mut i = primary.into_inner();
-                let name = i.next().unwrap().as_str();
-                let value = eval(i);
-                math_fn(name, value)
-            }
-            Rule::pi => std::f64::consts::PI,
-            Rule::e => std::f64::consts::E,
-            Rule::tau => std::f64::consts::TAU,
-            Rule::num => primary.as_str().trim().parse::<f64>().unwrap(),
-            Rule::expr => eval(primary.into_inner()),
-            _ => f64::NAN,
-        })
-        .map_infix(|lhs: f64, op: Pair<Rule>, rhs: f64| match op.as_rule() {
-            Rule::add => lhs + rhs,
-            Rule::subtract => lhs - rhs,
-            Rule::multiply => lhs * rhs,
-            Rule::divide => lhs / rhs,
-            Rule::power => lhs.powf(rhs),
-            Rule::percentOf => percent_of(lhs, rhs),
-            Rule::percentOn => percent_on(lhs, rhs),
-            Rule::rightShift => (lhs as i64 >> rhs as i64) as f64,
-            Rule::leftShift => ((lhs as i64) << rhs as i64) as f64,
-            Rule::modulus => (lhs % rhs) as f64,
-            _ => f64::NAN,
-        })
-        .parse(expression)
-}
-*/
 
 lazy_static::lazy_static! {
     static ref PREC_CLIMBER: PrecClimber<Rule> = {

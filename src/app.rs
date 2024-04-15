@@ -58,6 +58,11 @@ impl Component for Frame {
 
     fn view(&self, ctx: &Context<Self>) -> Html {
         let title = "devm calculator".to_string();
+        let total = if self.dec.len() == 0 {
+            "".to_string()
+        } else {
+            format!("Total: {}", self.total)
+        };
         let on_text_input = ctx.link().callback(move |e: InputEvent| {
             let input: HtmlTextAreaElement = e.target_unchecked_into::<HtmlTextAreaElement>();
             Msg::AddText(input.value())
@@ -65,8 +70,8 @@ impl Component for Frame {
         html! {
             <div class="min-h-screen px-3 bg-gray-100 md:px-0">
             <div class="flex flex-col items-center justify-center w-full h-full space-y-8">
-                <div class="flex items-center justify-between w-full max-w-md md:max-w-2xl lg:max-w-4xl px-4 py-4 -mx-4 border-b border-gray-200 sm:mx-0 sm:px-0">
-
+            <div class="w-full max-w-md md:max-w-2xl lg:max-w-4xl 2xl:max-w-6xl 4xl:max-w-8xl">
+                <div class="flex items-center justify-between px-4 py-4 -mx-4 border-b border-gray-200 sm:mx-0 sm:px-0">
                     <h1 class="text-2xl font-extrabold tracking-tight text-gray-900">{ title }</h1>
                     <div class="flex items-center ml-6 space-x-6 sm:space-x-10 sm:ml-10">
                     <a href="https://github.com/abhimanyu003/qubit" target="_blank" class="text-gray-600 transition-colors duration-200 hover:text-gray-900">
@@ -76,42 +81,50 @@ impl Component for Frame {
                     </div>
                 </div>
 
-                <div class="w-full max-w-md md:max-w-2xl lg:max-w-4xl subpixel-antialiased text-gray-500 bg-gray-900 rounded-md shadow-2xl text-md">
-                    <div class="grid h-full grid-cols-3 p-4">
-                        <div class="col-span-1 pt-5 font-mono text-sm text-gray-600">
-                            <p class="mt-0 pt-0">{ "input:" }</p>
-                            <textarea oninput={on_text_input}
-                                class="w-full h-full text-gray-200 placeholder-gray-500 placeholder-opacity-50 bg-transparent border-0 appearance-none resize-none focus:outline-none focus:ring-0 focus:border-0 active:border-0"
-                                    style="resize: none"
-                                    data-gramm="false"
-                                    placeholder="\n2 + 2 + sin ( 90 )\n1 ether to gwei\nnow - unix(2023,12,31,23,59,59)">
-                            </textarea>
-                        </div>
-                        <div class="col-span-1 font-mono overflow-x-auto text-right text-yellow-300 border-l border-opacity-30">
-                            <p class="pt-5 text-sm text-gray-600">{ "dec: " }</p>
-                            <div> {
-                                for self.dec.split('\n').into_iter().map(|v| {
-                                    html!{
-                                        <div class="w-full ">{ v }</div>
-                                    } })
-                                }
+                <div>
+                    <div class="form-control text-sm text-gray-600 pt-10 pb-2 flex justify-end">
+                        <label class="cursor-pointer label font-mono">
+                        <span>{"Display full EVM words "}</span>
+                        <input type="checkbox" checked=true class="checkbox checkbox-accent" />
+                        </label>
+                    </div>
+                    <div class="subpixel-antialiased text-gray-500 bg-gray-900 rounded-md shadow-2xl text-md">
+                        <div class="grid h-full grid-cols-3 p-4">
+                            <div class="col-span-1 pt-0 font-mono text-sm text-gray-600">
+                                <p class="mt-0 pt-0">{ "input:" }</p>
+                                <textarea oninput={on_text_input}
+                                    class="w-full h-full text-gray-200 placeholder-gray-500 placeholder-opacity-50 bg-transparent border-0 appearance-none resize-none focus:outline-none focus:ring-0 focus:border-0 active:border-0 pb-2"
+                                        data-gramm="false"
+                                        placeholder="\n1 ether to gwei\nnow - unix(2023,12,31)">
+                                </textarea>
                             </div>
-                        </div>
-                        <div class="col-span-1 font-mono overflow-x-auto text-right text-green-300">
-                            <p class="pt-5 text-sm text-gray-600">{ "hex: " }</p>
-                            <div> {
-                                for self.hex.split('\n').into_iter().map(|v| {
-                                    html!{
-                                        <div class="w-full ">{ v }</div>
-                                    } })
-                                }
+                            <div class="col-span-1 font-mono overflow-x-auto text-right text-yellow-300 border-l border-opacity-30">
+                                <p class="pt-0 text-sm text-gray-600">{ "dec: " }</p>
+                                <div> {
+                                    for self.dec.split('\n').into_iter().map(|v| {
+                                        html!{
+                                            <div class="w-full ">{ v }</div>
+                                        } })
+                                    }
+                                </div>
                             </div>
-                            <div class="pt-5 text-sm text-gray-600">{ "Total: " }{ self.total }</div>
+                            <div class="col-span-1 font-mono overflow-x-auto text-right text-green-300">
+                                <p class="pt-0 text-sm text-gray-600">{ "hex: " }</p>
+                                <div> {
+                                    for self.hex.split('\n').into_iter().map(|v| {
+                                        html!{
+                                            <div class="w-full ">{ v }</div>
+                                        } })
+                                    }
+                                </div>
+                                <div class="pt-5 text-sm text-gray-600">{ total }</div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
+            </div>
+            </div>
         }
     }
 }
