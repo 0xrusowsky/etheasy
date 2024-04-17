@@ -1,4 +1,5 @@
-use super::parser::{self, U256};
+use super::parser;
+use alloy_core::primitives::U256;
 use web_sys::HtmlTextAreaElement;
 use yew::prelude::*;
 use yew::Component;
@@ -46,7 +47,7 @@ impl Component for Frame {
                         }
                         None => None,
                     };
-                    let transformed = parser::transform(p);
+                    let transformed = parser::utils::stringify(p);
                     output_dec = format!("{}{}\n", output_dec, &transformed);
                     output_hex = format!("{}{}\n", output_hex, transformed);
                 }

@@ -1,4 +1,5 @@
 #![allow(deprecated)]
+use alloy_core::primitives::U256;
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime, TimeZone, Utc};
 use gloo_console::log;
 use pest::iterators::{Pair, Pairs};
@@ -9,8 +10,8 @@ use pest_derive::Parser;
 mod convert_chart;
 use convert_chart::{convert, UnitType};
 
-mod types;
-pub use types::U256;
+pub mod utils;
+use utils::*;
 
 #[derive(Parser)]
 #[grammar = "parser/grammar.pest"]
@@ -38,7 +39,7 @@ fn eval(expression: Pairs<Rule>) -> Option<U256> {
         |pair: Pair<Rule>| match pair.as_rule() {
             Rule::convert => {
                 let mut i = pair.into_inner();
-                let value = i.next().unwrap().as_str().parse::<U256>().unwrap();
+                let value = i.next().unwrap().as_str();
                 let unit_type = i
                     .clone()
                     .next()
@@ -219,51 +220,4 @@ pub fn parse(input: &str) -> Option<U256> {
         Ok(r) => eval(r),
         Err(_) => None,
     }
-}
-
-pub fn transform(t: Option<U256>) -> String {
-    match t {
-        None => "-".to_string(),
-        Some(u) => u.to_string(),
-    }
-}
-
-fn scientific_to_u256(s: &str) -> Option<U256> {
-    let mut split_iter = s.split("e");
-    let mut base_iter = split_iter.next().unwrap_or("0").split(".");
-    let exp = split_iter.next().unwrap_or("0").parse::<u64>().unwrap();
-
-    // process integer part
-    let base_int = base_iter.next().unwrap_or("0");
-    let base_units = base_int.chars().count() as u64;
-    let base_int = base_int.parse::<U256>().unwrap();
-    let exp_base = U256::from(10)
-        .checked_pow(U256::from(exp))
-        .unwrap_or(U256::from(0));
-
-    // process fractional part
-    let base_frac_str = remove_trailing_zeros(base_iter.next().unwrap_or("0"));
-    let base_frac = base_frac_str.parse::<U256>().unwrap();
-    let exp_frac = if base_units + lead_zeros(&base_frac_str) as u64 <= exp {
-        let frac_units = exp - base_units - lead_zeros(&base_frac_str) as u64;
-        U256::from(10)
-            .checked_pow(U256::from(frac_units))
-            .unwrap_or(U256::from(0))
-    } else {
-        U256::from(0)
-    };
-
-    // combine integer and fractional parts
-    base_int
-        .checked_mul(exp_base)?
-        .checked_add(base_frac.checked_mul(exp_frac)?)
-}
-
-fn lead_zeros(s: &str) -> usize {
-    s.chars().take_while(|&c| c == '0').count()
-}
-
-fn remove_trailing_zeros(s: &str) -> String {
-    let trimmed = s.trim_end_matches('0');
-    if trimmed.is_empty() { "0" } else { trimmed }.to_string()
 }
