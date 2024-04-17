@@ -237,24 +237,26 @@ fn scientific_to_u256(s: &str) -> Option<U256> {
     let base_int = base_iter.next().unwrap_or("0");
     let base_units = base_int.chars().count() as u64;
     let base_int = base_int.parse::<U256>().unwrap();
+    let exp_base = U256::from(10)
+        .checked_pow(U256::from(exp))
+        .unwrap_or(U256::from(0));
 
     // process fractional part
     let base_frac_str = remove_trailing_zeros(base_iter.next().unwrap_or("0"));
     let base_frac = base_frac_str.parse::<U256>().unwrap();
-    if base_units + lead_zeros(&base_frac_str) as u64 <= exp {
+    let exp_frac = if base_units + lead_zeros(&base_frac_str) as u64 <= exp {
         let frac_units = exp - base_units - lead_zeros(&base_frac_str) as u64;
-        let exp_base = U256::from(10)
-            .checked_pow(U256::from(exp))
-            .unwrap_or(U256::from(0));
-        let exp_frac = U256::from(10)
+        U256::from(10)
             .checked_pow(U256::from(frac_units))
-            .unwrap_or(U256::from(0));
-        base_int
-            .checked_mul(exp_base)?
-            .checked_add(base_frac.checked_mul(exp_frac)?)
+            .unwrap_or(U256::from(0))
     } else {
-        Some(U256::from(0))
-    }
+        U256::from(0)
+    };
+
+    // combine integer and fractional parts
+    base_int
+        .checked_mul(exp_base)?
+        .checked_add(base_frac.checked_mul(exp_frac)?)
 }
 
 fn lead_zeros(s: &str) -> usize {
