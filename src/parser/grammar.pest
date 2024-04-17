@@ -1,7 +1,7 @@
 WHITESPACE = _{ " " | "\t" }
 ident = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* ~ "'"* }
 int = { ("+" | "-")? ~ ASCII_DIGIT+ }
-num = @{ int ~ ("." ~ ASCII_DIGIT*)? ~ (^"e" ~ int)+ | int }
+num = @{ int ~ ("." ~ ASCII_DIGIT*)? ~ (^"e" ~ int)? }
 hex = { ("0x" | "x") ~ ('0'..'9' | 'a'..'f' | 'A'..'F')+}
 bin = { ("0b" | "b") ~ ("0" | "1")+}
 unix = { "unix(" ~

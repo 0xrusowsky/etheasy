@@ -1,4 +1,6 @@
-use super::types::U256;
+use super::utils::*;
+use alloy_core::primitives::U256;
+use gloo_console::log;
 use std::io::Error;
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
@@ -27,40 +29,54 @@ pub enum UnitType {
     EVMGAS(EvmGas),
 }
 
-pub fn convert(value: U256, from: UnitType, to: UnitType) -> Option<U256> {
-    if from == to {
-        return Some(value);
+pub fn convert(value: &str, from: UnitType, to: UnitType) -> Option<U256> {
+    if from == to && !value.contains(".") {
+        return Some(value.parse::<U256>().unwrap());
     }
     if std::mem::discriminant(&from) != std::mem::discriminant(&to) {
         return None;
     }
     match (find_conversion_factor(from), find_conversion_factor(to)) {
-        (Ok(from), Ok(to)) => Some(value * from / to),
+        (Ok(from), Ok(to)) => {
+            let from = U256::from(from);
+            let to = U256::from(to);
+            let mut float_iter = value.split(".");
+
+            // process integer and fractional parts separetely
+            let base_str = float_iter.next().unwrap_or("0");
+            let frac_str = remove_trailing_zeros(float_iter.next().unwrap_or("0"));
+            let frac_exp = U256::from(10).checked_pow(U256::from(frac_str.chars().count()))?;
+            // merge integer and fractional parts (risk of precision loss here)
+            let uint = format!("{base_str}{frac_str}").parse::<U256>().unwrap();
+            uint.checked_mul(from)?
+                .checked_div(to)?
+                .checked_div(frac_exp)
+        }
         _ => None,
     }
 }
 
 /// Finds conversion factor if applicable, otherwise return which
 /// actual unit does not have a fixed conversion factor.
-pub fn find_conversion_factor(u: UnitType) -> Result<U256, Error> {
+pub fn find_conversion_factor(u: UnitType) -> Result<u64, Error> {
     Ok(match u {
         UnitType::TIME(v) => match v {
-            Time::SECOND => U256::from(1),
-            Time::MINUTE => U256::from(60),
-            Time::HOUR => U256::from(3600),
-            Time::DAY => U256::from(86400),
-            Time::WEEK => U256::from(604800),
-            Time::MONTH => U256::from(2628000),
-            Time::YEAR => U256::from(31536000),
+            Time::SECOND => 1,
+            Time::MINUTE => 60,
+            Time::HOUR => 3600,
+            Time::DAY => 86400,
+            Time::WEEK => 604800,
+            Time::MONTH => 2628000,
+            Time::YEAR => 31536000,
         },
         UnitType::EVMGAS(v) => match v {
-            EvmGas::WEI => U256::from(1),
-            EvmGas::KILOWEI => U256::from(1e3 as u64),
-            EvmGas::MEGAWEI => U256::from(1e6 as u64),
-            EvmGas::GIGAWEI => U256::from(1e9 as u64),
-            EvmGas::MICROETHER => U256::from(1e12 as u64),
-            EvmGas::MILLIETHER => U256::from(1e15 as u64),
-            EvmGas::ETHER => U256::from(1e18 as u64),
+            EvmGas::WEI => 1,
+            EvmGas::KILOWEI => 1e3 as u64,
+            EvmGas::MEGAWEI => 1e6 as u64,
+            EvmGas::GIGAWEI => 1e9 as u64,
+            EvmGas::MICROETHER => 1e12 as u64,
+            EvmGas::MILLIETHER => 1e15 as u64,
+            EvmGas::ETHER => 1e18 as u64,
         },
     })
 }
