@@ -9,6 +9,9 @@ use pest_derive::Parser;
 mod convert_chart;
 use convert_chart::{convert, UnitType};
 
+mod types;
+pub use types::U256;
+
 #[derive(Parser)]
 #[grammar = "parser/grammar.pest"]
 struct Calculator;
@@ -29,13 +32,13 @@ lazy_static::lazy_static! {
     };
 }
 
-fn eval(expression: Pairs<Rule>) -> f64 {
+fn eval(expression: Pairs<Rule>) -> Option<U256> {
     PREC_CLIMBER.climb(
         expression,
         |pair: Pair<Rule>| match pair.as_rule() {
             Rule::convert => {
                 let mut i = pair.into_inner();
-                let value = i.next().unwrap().as_str().parse::<f64>().unwrap();
+                let value = i.next().unwrap().as_str().parse::<U256>().unwrap();
                 let unit_type = i
                     .clone()
                     .next()
@@ -71,7 +74,7 @@ fn eval(expression: Pairs<Rule>) -> f64 {
                 ) {
                     convert(value, from, to)
                 } else {
-                    f64::NAN
+                    None
                 }
             }
             Rule::function => {
@@ -80,17 +83,22 @@ fn eval(expression: Pairs<Rule>) -> f64 {
                 if name.starts_with("unix") && name.len() > 5 {
                     let end = name.len() - 1;
                     let value = &name[5..end];
-                    parse_datetime(value) as f64
+                    Some(U256::from(parse_datetime(value)))
                 } else {
-                    let value = eval(i);
-                    math_fn(name, value)
+                    let value = eval(i)?;
+                    None
+                    // math_fn(name, value)
                 }
             }
-            Rule::pi => std::f64::consts::PI,
-            Rule::e => std::f64::consts::E,
-            Rule::tau => std::f64::consts::TAU,
-            Rule::now => Utc::now().timestamp() as f64,
-            Rule::num => pair.as_str().trim().parse::<f64>().unwrap(),
+            Rule::now => Some(U256::from(Utc::now().timestamp())),
+            Rule::num => {
+                let value_str = pair.as_str().trim();
+                if value_str.contains("e") {
+                    scientific_to_u256(value_str)
+                } else {
+                    value_str.parse::<U256>().ok()
+                }
+            }
             Rule::hex => {
                 let pref_hex = pair.as_str().trim();
                 let hex = if pref_hex.starts_with("0x") {
@@ -98,7 +106,7 @@ fn eval(expression: Pairs<Rule>) -> f64 {
                 } else {
                     &pref_hex[1..]
                 };
-                i64::from_str_radix(hex, 16).unwrap() as f64
+                U256::from_str_radix(hex, 16).ok()
             }
             Rule::bin => {
                 let pref_bin = pair.as_str().trim();
@@ -107,37 +115,62 @@ fn eval(expression: Pairs<Rule>) -> f64 {
                 } else {
                     &pref_bin[1..]
                 };
-                i64::from_str_radix(bin, 2).unwrap() as f64
+                U256::from_str_radix(bin, 2).ok()
             }
             Rule::expr => eval(pair.into_inner()),
-            _ => f64::NAN,
+            _ => None,
         },
-        |lhs: f64, op: Pair<Rule>, rhs: f64| match op.as_rule() {
-            Rule::add => lhs + rhs,
-            Rule::subtract => lhs - rhs,
-            Rule::multiply => lhs * rhs,
-            Rule::divide => lhs / rhs,
-            Rule::power => lhs.powf(rhs),
-            Rule::percentOf => percent_of(lhs, rhs),
-            Rule::percentOn => percent_on(lhs, rhs),
-            Rule::rightShift => (lhs as i64 >> rhs as i64) as f64,
-            Rule::leftShift => ((lhs as i64) << rhs as i64) as f64,
-            Rule::modulus => (lhs % rhs) as f64,
-            _ => f64::NAN,
+        |lhs: Option<U256>, op: Pair<Rule>, rhs: Option<U256>| {
+            let lhs = lhs?;
+            let rhs = rhs?;
+            match op.as_rule() {
+                Rule::add => lhs.checked_add(rhs),
+                Rule::subtract => lhs.checked_sub(rhs),
+                Rule::multiply => lhs.checked_mul(rhs),
+                Rule::divide => lhs.checked_div(rhs),
+                Rule::power => lhs.checked_pow(rhs),
+                Rule::percentOf => percent_of(lhs, rhs),
+                Rule::percentOn => percent_on(lhs, rhs),
+                Rule::rightShift => {
+                    let shift: usize = match rhs.try_into() {
+                        Ok(v) => v,
+                        Err(e) => {
+                            eprintln!("Error converting to usize: {}", e);
+                            return None;
+                        }
+                    };
+                    lhs.checked_shr(shift)
+                }
+                Rule::leftShift => {
+                    let shift: usize = match rhs.try_into() {
+                        Ok(v) => v,
+                        Err(e) => {
+                            eprintln!("Error converting to usize: {}", e);
+                            return None;
+                        }
+                    };
+                    lhs.checked_shl(shift)
+                }
+                Rule::modulus => lhs.checked_rem(rhs),
+                _ => return None,
+            }
         },
     )
 }
 
-fn percent_on(a: f64, b: f64) -> f64 {
-    a / 100_f64 * b + b
+fn percent_on(a: U256, b: U256) -> Option<U256> {
+    a.checked_mul(b)?
+        .checked_div(U256::from(100))?
+        .checked_add(b)
 }
 
-fn percent_of(a: f64, b: f64) -> f64 {
-    a / 100_f64 * b
+fn percent_of(a: U256, b: U256) -> Option<U256> {
+    a.checked_mul(b)?.checked_div(U256::from(100))
 }
 
-fn math_fn(name: &str, arg: f64) -> f64 {
-    match name {
+/*
+fn math_fn(name: &str, arg: f64) -> Option<U256> {
+    let result = match name {
         "sin" => arg.to_radians().sin(),
         "cos" => arg.to_radians().cos(),
         "tan" => arg.to_radians().tan(),
@@ -156,9 +189,11 @@ fn math_fn(name: &str, arg: f64) -> f64 {
         "round" => arg.round(),
         "ceil" => arg.ceil(),
         "floor" => arg.floor(),
-        _ => f64::NAN,
-    }
+        _ => return None,
+    };
+    result
 }
+*/
 
 fn parse_datetime(input: &str) -> i64 {
     let std_input = input.replace(&['-', '/', ':', 'T', '+'][..], ",");
@@ -178,21 +213,55 @@ fn parse_datetime(input: &str) -> i64 {
     Utc.from_utc_datetime(&dt).timestamp()
 }
 
-pub fn parse(input: &str) -> f64 {
+pub fn parse(input: &str) -> Option<U256> {
     let parse_result = Calculator::parse(Rule::calculation, input);
     match parse_result {
         Ok(r) => eval(r),
-        Err(_) => f64::NAN,
+        Err(_) => None,
     }
 }
 
-pub fn transform(c: f64) -> String {
-    use float_pretty_print::PrettyPrintFloat;
-    if c.is_nan() {
-        return "-".to_string();
+pub fn transform(t: Option<U256>) -> String {
+    match t {
+        None => "-".to_string(),
+        Some(u) => u.to_string(),
     }
-    if c.fract() == 0.0 {
-        return c.to_string().trim().to_string();
+}
+
+fn scientific_to_u256(s: &str) -> Option<U256> {
+    let mut split_iter = s.split("e");
+    let mut base_iter = split_iter.next().unwrap_or("0").split(".");
+    let exp = split_iter.next().unwrap_or("0").parse::<u64>().unwrap();
+
+    // process integer part
+    let base_int = base_iter.next().unwrap_or("0");
+    let base_units = base_int.chars().count() as u64;
+    let base_int = base_int.parse::<U256>().unwrap();
+
+    // process fractional part
+    let base_frac_str = remove_trailing_zeros(base_iter.next().unwrap_or("0"));
+    let base_frac = base_frac_str.parse::<U256>().unwrap();
+    if base_units + lead_zeros(&base_frac_str) as u64 <= exp {
+        let frac_units = exp - base_units - lead_zeros(&base_frac_str) as u64;
+        let exp_base = U256::from(10)
+            .checked_pow(U256::from(exp))
+            .unwrap_or(U256::from(0));
+        let exp_frac = U256::from(10)
+            .checked_pow(U256::from(frac_units))
+            .unwrap_or(U256::from(0));
+        base_int
+            .checked_mul(exp_base)?
+            .checked_add(base_frac.checked_mul(exp_frac)?)
+    } else {
+        Some(U256::from(0))
     }
-    return PrettyPrintFloat(c).to_string().trim().to_string();
+}
+
+fn lead_zeros(s: &str) -> usize {
+    s.chars().take_while(|&c| c == '0').count()
+}
+
+fn remove_trailing_zeros(s: &str) -> String {
+    let trimmed = s.trim_end_matches('0');
+    if trimmed.is_empty() { "0" } else { trimmed }.to_string()
 }
