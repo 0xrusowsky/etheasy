@@ -13,18 +13,15 @@ unix = { "unix(" ~
     ('0'..'6')* ~ ('0'..'9')* ~ ")"
 }
 
-e  = { "e" }
-pi = { "pi" | "π" }
-tau = { "tau" | "τ" }
 now = { "now" | "current time" }
-constants = _{ pi | e | tau | now }
+constants = _{ now }
 
 infix = _{ subtract | add | multiply | divide | power | percentOf | percentOn | rightShift | leftShift | modulus }
 add         = { "+" | "with" | "plus" | "add" }
 subtract    = { "-" | "without" | "subtract" | "minus" }
 multiply    = { "*" | "times" | "multiply by" | "mul" }
 divide      = { "/" | "divide by" | "divide" }
-power       = { "^" | "power" }
+power       = { "^" | "power" | "pow" }
 modulus     = { "%" | "mod" }
 rightShift  = { ">>" }
 leftShift   = { "<<" }
@@ -43,10 +40,7 @@ calculation = _{ SOI ~ primary ~ EOI }
 // SiUnits parser starts from here.
 
 // Time
-TIME = { NANOSECOND | MICROSECOND | MILLISECOND | SECOND | MINUTE | HOUR | DAY | WEEK | MONTH | YEAR }
-NANOSECOND = { "nanoseconds" | "nanosecond" | "nanosecs" | "nanosec" | "ns" }
-MICROSECOND = { "microseconds" | "microsecond" |  "microsecs" | "microsec" | "µs" }
-MILLISECOND = { "milliseconds" | "millisecond" | "millisecs" | "millisec" | "ms" }
+TIME = { SECOND | MINUTE | HOUR | DAY | WEEK | MONTH | YEAR }
 SECOND = { "seconds" | "second" | "secs" | "sec" }
 MINUTE = { "minutes" | "minute" | "min" }
 HOUR = { "hours" | "hour" | "hrs" | "hr" }
@@ -54,19 +48,6 @@ DAY = { "days" | "day" }
 WEEK = { "weeks" | "week" | "wks" | "wk" }
 MONTH = { "months" | "month" | "mos" | "mo" }
 YEAR = { "years" | "year" | "yrs" | "yr" }
-
-// Digital Information
-DIGITALINFO = { BIT | BYTE | KILOBIT | KILOBYTE | MEGABIT | MEGABYTE | MEGABYTE | GIGABIT | GIGABYTE | TERABIT | TERABYTE }
-BIT = { "bits" | "bit" }
-BYTE = { "bytes" | "byte" }
-KILOBIT = { "kilobits" | "kilobit" | ^"kbit" }
-KILOBYTE = { "kilobytes" | "kilobyte" | ^"kb" }
-MEGABIT = { "megabits" | "megabit" | ^"mbit" }
-MEGABYTE = { "megabytes" | "megabyte" | ^"mb" }
-GIGABIT = { "gigabits" |  "gigabit" | ^"gbit" }
-GIGABYTE = { "gigabytes" | "gigabyte" |  ^"gb" }
-TERABIT = { "terabits" | "terabit" | ^"tbit" }
-TERABYTE = { "terabytes" | "terabyte" | ^"tb" }
 
 // EVM Gas
 EVMGAS = { WEI | KILOWEI | MEGAWEI | GIGAWEI | MICROETHER | MILLIETHER | ETHER }
@@ -78,5 +59,5 @@ MICROETHER = { "microether" | "µeth" }
 MILLIETHER = { "milliether" | "miliether" | "mether" }
 ETHER = { "ether" | ^"eth" }
 
-siunit = { EVMGAS | DIGITALINFO | TIME }
+siunit = { EVMGAS | TIME }
 convert = {num ~ siunit ~  ( "to" | "as" | "in" ) ~ siunit }
