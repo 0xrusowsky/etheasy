@@ -1,11 +1,15 @@
 use super::parser;
 use alloy_core::primitives::U256;
+use alloy_core::primitives::{B256, B64};
 use web_sys::HtmlTextAreaElement;
 use yew::prelude::*;
 use yew::Component;
 
+use gloo_console::*;
+
 enum Msg {
     AddText(String),
+    Toggle,
 }
 
 #[function_component(App)]
@@ -17,6 +21,17 @@ struct Frame {
     dec: String,
     hex: String,
     total: U256,
+    toggle: bool,
+}
+
+impl Frame {
+    fn toggle(&mut self) {
+        self.toggle = !self.toggle;
+    }
+
+    fn is_toggled(&self) -> bool {
+        self.toggle
+    }
 }
 
 impl Component for Frame {
@@ -28,6 +43,7 @@ impl Component for Frame {
             dec: String::from(""),
             hex: String::from(""),
             total: U256::from(0),
+            toggle: false,
         }
     }
 
@@ -47,12 +63,48 @@ impl Component for Frame {
                         }
                         None => None,
                     };
-                    let transformed = parser::utils::stringify(p);
-                    output_dec = format!("{}{}\n", output_dec, &transformed);
-                    output_hex = format!("{}{}\n", output_hex, transformed);
+                    let (dec, hex) = parser::utils::stringify(p, self.is_toggled());
+                    output_dec = format!("{}{}\n", output_dec, dec);
+                    output_hex = format!("{}{}\n", output_hex, hex);
                 }
 
                 self.total = total;
+                self.dec = output_dec;
+                self.hex = output_hex;
+            }
+            Msg::Toggle => {
+                self.toggle();
+
+                let mut buffer_i = 0;
+                let mut buffer_str = "".to_string();
+                let mut output_dec = "".to_string();
+                let mut output_hex = "".to_string();
+                let split = self.hex.trim_end_matches("\n").split("\n");
+
+                for mut s in split {
+                    log!("s: {:?}", s);
+                    log!("buffer_i: {:?}", buffer_i);
+                    if s.len() == 0 {
+                        continue;
+                    }
+                    // If previously toggled, buffer the string until it is complete
+                    if !self.is_toggled() && s != "-" {
+                        buffer_str = format!("{}{}", buffer_str, s);
+                        if buffer_i < 2 {
+                            buffer_i += 1;
+                            continue;
+                        }
+                        buffer_i = 0;
+                        s = &buffer_str;
+                    }
+
+                    let u = s.parse::<U256>().ok();
+                    buffer_str = "".to_string();
+                    let (dec, hex) = parser::utils::stringify(u, self.is_toggled());
+                    output_dec = format!("{}{}\n", output_dec, dec);
+                    output_hex = format!("{}{}\n", output_hex, hex);
+                }
+
                 self.dec = output_dec;
                 self.hex = output_hex;
             }
@@ -89,7 +141,7 @@ impl Component for Frame {
                     <div class="form-control text-sm text-gray-600 pt-10 pb-2 flex justify-end">
                         <label class="cursor-pointer label">
                         <span>{"Display full EVM words "}</span>
-                        <input type="checkbox" checked=true class="checkbox checkbox-accent" />
+                        <input type="checkbox" checked={self.is_toggled()} class="checkbox checkbox-accent" onclick={ctx.link().callback(|_| Msg::Toggle)}/>
                         </label>
                     </div>
                     <div class="subpixel-antialiased text-gray-500 bg-gray-900 rounded-md shadow-2xl text-sm">
