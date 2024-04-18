@@ -1,10 +1,12 @@
 use alloy_core::primitives::{B256, U256};
 use gloo_console::*;
 
-pub fn stringify(u: Option<U256>, full: bool) -> (String, String) {
+use super::types::ParseResult;
+
+pub fn stringify(u: ParseResult, full: bool) -> (String, String) {
     match u {
-        None => ("-".to_string(), "-".to_string()),
-        Some(u) => {
+        ParseResult::NAN => ("-".to_string(), "-".to_string()),
+        ParseResult::Value(u) => {
             let dec = u.to_string();
             let hex: B256 = u.into();
             let hex_str = hex.to_string();
@@ -27,6 +29,12 @@ pub fn stringify(u: Option<U256>, full: bool) -> (String, String) {
                 );
                 (format!("-\n-\n{}", dec), formatted_hex)
             }
+        }
+        ParseResult::String(mut s) => {
+            if !s.starts_with("0x") {
+                s = format!("'{}'", s);
+            }
+            ("-".to_string(), s)
         }
     }
 }

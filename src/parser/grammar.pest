@@ -1,4 +1,4 @@
-WHITESPACE = _{ " " | "\t" }
+WHITESPACE = _{ " " | "\t"}
 ident = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* ~ "'"* }
 int = { ("+" | "-")? ~ ASCII_DIGIT+ }
 num = @{ int ~ ("." ~ ASCII_DIGIT*)? ~ (^"e" ~ int)? }
@@ -13,8 +13,9 @@ unix = { "unix(" ~
     ('0'..'6')* ~ ('0'..'9')* ~ ")"
 }
 
+address_zero = { "address(0)" | "addr(0)" | "address zero" | "zero address" | "zeroaddress" | "zadd" }
 now = { "now" | "current time" }
-constants = _{ now }
+constants = _{ now | address_zero }
 
 infix = _{ subtract | add | multiply | divide | power | percentOf | percentOn | rightShift | leftShift | modulus }
 add         = { "+" | "with" | "plus" | "add" }

@@ -1,4 +1,4 @@
-use super::parser;
+use super::parser::{self, types::ParseResult};
 use alloy_core::primitives::U256;
 use alloy_core::primitives::{B256, B64};
 use web_sys::HtmlTextAreaElement;
@@ -56,13 +56,12 @@ impl Component for Frame {
                 let split = input.split('\n');
 
                 for s in split {
-                    let p = match parser::parse(s) {
-                        Some(p) => {
-                            total = total.checked_add(p).unwrap();
-                            Some(p)
-                        }
-                        None => None,
+                    let p = parser::parse(s);
+                    match p {
+                        ParseResult::Value(u) => total = total.checked_add(u).unwrap(),
+                        _ => (),
                     };
+
                     let (dec, hex) = parser::utils::stringify(p, self.is_toggled());
                     output_dec = format!("{}{}\n", output_dec, dec);
                     output_hex = format!("{}{}\n", output_hex, hex);
@@ -98,7 +97,7 @@ impl Component for Frame {
                         s = &buffer_str;
                     }
 
-                    let u = s.parse::<U256>().ok();
+                    let u = s.parse::<U256>().ok().into();
                     buffer_str = "".to_string();
                     let (dec, hex) = parser::utils::stringify(u, self.is_toggled());
                     output_dec = format!("{}{}\n", output_dec, dec);

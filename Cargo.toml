@@ -7,6 +7,7 @@ edition = "2021"
 
 [dependencies]
 alloy-core = "0.7.0"
+base64 = "0.22.0"
 chrono = "0.4.37"
 float-pretty-print = "0.1.1"
 gloo-console = "0.3.0"
