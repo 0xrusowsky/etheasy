@@ -37,6 +37,7 @@ lazy_static::lazy_static! {
 }
 
 fn eval(expression: Pairs<Rule>) -> ParseResult {
+    log!("exp: {:#?}", expression.to_string());
     PREC_CLIMBER.climb(
         expression,
         |pair: Pair<Rule>| match pair.as_rule() {
@@ -83,10 +84,15 @@ fn eval(expression: Pairs<Rule>) -> ParseResult {
             Rule::function => {
                 let mut i = pair.into_inner();
                 let name = i.next().unwrap().as_str();
-                log!("name: {}", name);
-                let value = i.next().unwrap().as_str();
-                log!("value: {}", value);
-                utility_fns(name, value)
+                if name.starts_with("unix") {
+                    match parse_encoded_utility_fn(name, "unix") {
+                        Some(value) => utility_fns("unix", &value),
+                        None => ParseResult::NAN,
+                    }
+                } else {
+                    let value = i.next().unwrap().as_str();
+                    utility_fns(name, value)
+                }
             }
             Rule::now => U256::from(Utc::now().timestamp()).into(),
             Rule::address_zero => String::from("0x0000000000000000000000000000000000000000").into(),
@@ -170,11 +176,10 @@ fn percent_of(a: U256, b: U256) -> Option<U256> {
 }
 
 fn utility_fns(input: &str, value: &str) -> ParseResult {
-    log!("fn: {}", input);
-    log!("value: {}", value);
+    let value = trim_quotes(value);
     match input {
         // unix timestamp
-        "tunix" => U256::from(parse_datetime(&value)).into(),
+        "unix" => U256::from(parse_datetime(&value)).into(),
         // checksum address
         // "address" | "add" | "checksum" => parse_address(value).into(),
         // // hash functions
@@ -185,23 +190,22 @@ fn utility_fns(input: &str, value: &str) -> ParseResult {
             value.to_lowercase().into()
         }
         "uppercase" | "upper" => value.to_uppercase().into(),
-        "base64_encode" | "b64encode" => URL_SAFE.encode(value).into(),
-        "base64_decode" | "b64decode" => String::from_utf8(URL_SAFE.decode(value).unwrap())
-            .ok()
-            .into(),
+        "base64_encode" | "b64encode" | "b64_encode" => URL_SAFE.encode(value).into(),
+        "base64_decode" | "b64decode" | "b64_decode" => match URL_SAFE.decode(value) {
+            Ok(v) => String::from_utf8(v).ok().into(),
+            Err(e) => {
+                log!("Error decoding base64: {}", e.to_string());
+                ParseResult::NAN
+            }
+        },
         // not supported
         _ => ParseResult::NAN,
     }
 }
 
-fn parse_utility_fn(input: &str, name: &str) -> Option<String> {
-    log!(format!(
-        "parse_utility_fn: input: {}, name: {}",
-        input, name
-    ));
-    log!("start: {} len: {}", name.len(), input.len());
+fn parse_encoded_utility_fn(input: &str, name: &str) -> Option<String> {
     if input.starts_with(name) {
-        let start = name.len();
+        let start = name.len() + 1;
         let end = input.len() - 1;
         if input.len() > start {
             let value = &input[start..end];
