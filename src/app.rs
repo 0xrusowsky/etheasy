@@ -22,6 +22,7 @@ struct Frame {
     hex: String,
     total: U256,
     toggle: bool,
+    input: String,
 }
 
 impl Frame {
@@ -31,6 +32,31 @@ impl Frame {
 
     fn is_toggled(&self) -> bool {
         self.toggle
+    }
+}
+
+impl Frame {
+    fn parse_input(&mut self) {
+        let mut output_dec = "".to_string();
+        let mut output_hex = "".to_string();
+        let mut total = U256::from(0);
+        let split = self.input.split('\n');
+
+        for s in split {
+            let p = parser::parse(s);
+            match p {
+                ParseResult::Value(u) => total = total.checked_add(u).unwrap(),
+                _ => (),
+            };
+
+            let (dec, hex) = parser::utils::stringify(p, self.is_toggled());
+            output_dec = format!("{}{}\n", output_dec, dec);
+            output_hex = format!("{}{}\n", output_hex, hex);
+        }
+
+        self.total = total;
+        self.dec = output_dec;
+        self.hex = output_hex;
     }
 }
 
@@ -44,68 +70,19 @@ impl Component for Frame {
             hex: String::from(""),
             total: U256::from(0),
             toggle: false,
+            input: "".to_string(),
         }
     }
 
     fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             Msg::AddText(input) => {
-                let mut output_dec = "".to_string();
-                let mut output_hex = "".to_string();
-                let mut total = U256::from(0);
-                let split = input.split('\n');
-
-                for s in split {
-                    let p = parser::parse(s);
-                    match p {
-                        ParseResult::Value(u) => total = total.checked_add(u).unwrap(),
-                        _ => (),
-                    };
-
-                    let (dec, hex) = parser::utils::stringify(p, self.is_toggled());
-                    output_dec = format!("{}{}\n", output_dec, dec);
-                    output_hex = format!("{}{}\n", output_hex, hex);
-                }
-
-                self.total = total;
-                self.dec = output_dec;
-                self.hex = output_hex;
+                self.input = input;
+                self.parse_input();
             }
             Msg::Toggle => {
                 self.toggle();
-
-                let mut buffer_i = 0;
-                let mut buffer_str = "".to_string();
-                let mut output_dec = "".to_string();
-                let mut output_hex = "".to_string();
-                let split = self.hex.trim_end_matches("\n").split("\n");
-
-                for mut s in split {
-                    log!("s: {:?}", s);
-                    log!("buffer_i: {:?}", buffer_i);
-                    if s.len() == 0 {
-                        continue;
-                    }
-                    // If previously toggled, buffer the string until it is complete
-                    if !self.is_toggled() && s != "-" {
-                        buffer_str = format!("{}{}", buffer_str, s);
-                        if buffer_i < 2 {
-                            buffer_i += 1;
-                            continue;
-                        }
-                        buffer_i = 0;
-                        s = &buffer_str;
-                    }
-
-                    let u = s.parse::<U256>().ok().into();
-                    buffer_str = "".to_string();
-                    let (dec, hex) = parser::utils::stringify(u, self.is_toggled());
-                    output_dec = format!("{}{}\n", output_dec, dec);
-                    output_hex = format!("{}{}\n", output_hex, hex);
-                }
-
-                self.dec = output_dec;
-                self.hex = output_hex;
+                self.parse_input();
             }
         };
         true
@@ -153,27 +130,41 @@ impl Component for Frame {
                                         placeholder="\n1 ether to gwei\nnow - unix(2023,12,31)">
                                 </textarea>
                             </div>
-                            <div class="col-span-1 overflow-x-auto text-right text-yellow-300 border-l border-opacity-30">
-                                <p class="pt-0 text-sm text-gray-600">{ "dec: " }</p>
-                                <div> {
-                                    for self.dec.split('\n').into_iter().map(|v| {
-                                        html!{
-                                            <div class="w-full ">{ v }</div>
-                                        } })
-                                    }
+                            if self.is_toggled() {
+                                <div class="col-span-2 overflow-x-auto text-right text-green-300 border-l border-opacity-30">
+                                    <p class="pt-0 text-sm text-gray-600">{ "hex: " }</p>
+                                    <div> {
+                                        for self.hex.split('\n').into_iter().map(|v| {
+                                            html!{
+                                                <div class="w-full ">{ v }</div>
+                                            } })
+                                        }
+                                    </div>
+                                    <div class="pt-5 text-sm text-gray-600">{ total }</div>
                                 </div>
-                            </div>
-                            <div class="col-span-1 overflow-x-auto text-right text-green-300">
-                                <p class="pt-0 text-sm text-gray-600">{ "hex: " }</p>
-                                <div> {
-                                    for self.hex.split('\n').into_iter().map(|v| {
-                                        html!{
-                                            <div class="w-full ">{ v }</div>
-                                        } })
-                                    }
+                            } else {
+                                    <div class="col-span-1 overflow-x-auto text-right text-yellow-300 border-l border-opacity-30">
+                                        <p class="pt-0 text-sm text-gray-600">{ "dec: " }</p>
+                                        <div> {
+                                            for self.dec.split('\n').into_iter().map(|v| {
+                                                html!{
+                                                    <div class="w-full ">{ v }</div>
+                                                } })
+                                            }
+                                        </div>
+                                    </div>
+                                <div class="col-span-1 overflow-x-auto text-right text-green-300">
+                                    <p class="pt-0 text-sm text-gray-600">{ "hex: " }</p>
+                                    <div> {
+                                        for self.hex.split('\n').into_iter().map(|v| {
+                                            html!{
+                                                <div class="w-full ">{ v }</div>
+                                            } })
+                                        }
                                 </div>
                                 <div class="pt-5 text-sm text-gray-600">{ total }</div>
-                            </div>
+                                </div>
+                            }
                         </div>
                     </div>
                 </div>

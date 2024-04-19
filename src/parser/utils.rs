@@ -20,14 +20,7 @@ pub fn stringify(u: ParseResult, full: bool) -> (String, String) {
                     (dec, hex_formatted)
                 }
             } else {
-                log!("hex_str length: {}", hex_str.len());
-                // For the `full` true case, check if the hex string is exactly 66 characters long
-                let formatted_hex = format!(
-                    "0x\n{}\n{}",
-                    hex_str[2..34].to_string(),
-                    hex_str[34..].to_string()
-                );
-                (format!("-\n-\n{}", dec), formatted_hex)
+                ("-".to_string(), hex_str)
             }
         }
         ParseResult::String(mut s) => {
