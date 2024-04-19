@@ -19,7 +19,7 @@ addr_zero = { "address(0)" | "addr(0)" | "address zero" | "zero address" | "zero
 now = { "now" | "current time" }
 constants = _{ now | addr_zero }
 
-infix = _{ subtract | add | multiply | divide | power | percentOf | percentOn | rightShift | leftShift | modulus }
+infix = _{ subtract | add | multiply | divide | power | rightShift | leftShift | modulus }
 add         = { "+" | "with" | "plus" | "add" }
 subtract    = { "-" | "without" | "subtract" | "minus" }
 multiply    = { "*" | "times" | "multiply by" | "mul" }
@@ -28,8 +28,6 @@ power       = { "^" | "power" | "pow" }
 modulus     = { "%" | "mod" }
 rightShift  = { ">>" }
 leftShift   = { "<<" }
-percentOf   = { "percent of" | "%" ~ "of" }
-percentOn   = { "percent on" | "%" ~ "on" }
 
 function_val = {ident ~ "(" ~ expr ~ ")" }
 function_str = { unix | ident ~ "(" ~ quote ~ ")"}

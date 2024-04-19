@@ -33,6 +33,12 @@ impl From<String> for ParseResult {
     }
 }
 
+impl From<&str> for ParseResult {
+    fn from(s: &str) -> Self {
+        ParseResult::String(s.to_string())
+    }
+}
+
 impl From<U256> for ParseResult {
     fn from(u: U256) -> Self {
         ParseResult::Value(u)
