@@ -15,9 +15,9 @@ unix = { "unix(" ~
     ('0'..'6')* ~ ('0'..'9')* ~ ")"
 }
 
-address_zero = { "address(0)" | "addr(0)" | "address zero" | "zero address" | "zeroaddress" | "zadd" }
+addr_zero = { "address(0)" | "addr(0)" | "address zero" | "zero address" | "zeroaddress" | "zadd" }
 now = { "now" | "current time" }
-constants = _{ now | address_zero }
+constants = _{ now | addr_zero }
 
 infix = _{ subtract | add | multiply | divide | power | percentOf | percentOn | rightShift | leftShift | modulus }
 add         = { "+" | "with" | "plus" | "add" }
@@ -31,7 +31,10 @@ leftShift   = { "<<" }
 percentOf   = { "percent of" | "%" ~ "of" }
 percentOn   = { "percent on" | "%" ~ "on" }
 
-function = { unix | ident ~ "(" ~ quote ~ ")" | ident ~ "(" ~ expr ~ ")" }
+function_val = {ident ~ "(" ~ expr ~ ")" }
+function_str = { unix | ident ~ "(" ~ quote ~ ")"}
+function_args = { ident ~ "(" ~ expr ~ ("," ~ expr)+ ~ ")" }
+function = _{ function_val | function_str | function_args }
 atom = _{ hex | bin | constants | function | ident | convert | num | "(" ~ expr ~ ")"  }
 expr = { atom ~ (infix ~ atom)* }
 assign = { ident ~ "=" ~ expr }

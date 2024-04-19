@@ -1,5 +1,8 @@
 #![allow(deprecated)]
-use alloy_core::primitives::U256;
+use alloy_core::primitives::{
+    utils::{format_ether, format_units, keccak256},
+    Address, U256,
+};
 use base64::{engine::general_purpose::URL_SAFE, Engine as _};
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime, TimeZone, Utc};
 use gloo_console::log;
@@ -37,7 +40,6 @@ lazy_static::lazy_static! {
 }
 
 fn eval(expression: Pairs<Rule>) -> ParseResult {
-    log!("exp: {:#?}", expression.to_string());
     PREC_CLIMBER.climb(
         expression,
         |pair: Pair<Rule>| match pair.as_rule() {
@@ -81,21 +83,34 @@ fn eval(expression: Pairs<Rule>) -> ParseResult {
                     ParseResult::NAN
                 }
             }
-            Rule::function => {
+            Rule::function_val => {
+                let mut i = pair.into_inner();
+                let name = i.next().unwrap().as_str();
+                match eval(i) {
+                    ParseResult::Value(value) => utility_fn_val(name, value),
+                    _ => ParseResult::NAN,
+                }
+            }
+            Rule::function_str => {
                 let mut i = pair.into_inner();
                 let name = i.next().unwrap().as_str();
                 if name.starts_with("unix") {
                     match parse_encoded_utility_fn(name, "unix") {
-                        Some(value) => utility_fns("unix", &value),
+                        Some(value) => utility_fn_str("unix", &value),
                         None => ParseResult::NAN,
                     }
                 } else {
                     let value = i.next().unwrap().as_str();
-                    utility_fns(name, value)
+                    utility_fn_str(name, value)
                 }
             }
+            Rule::function_args => {
+                let mut i = pair.into_inner();
+                let name = i.next().unwrap().as_str();
+                utility_fn_args(name, i)
+            }
             Rule::now => U256::from(Utc::now().timestamp()).into(),
-            Rule::address_zero => String::from("0x0000000000000000000000000000000000000000").into(),
+            Rule::addr_zero => String::from("0x0000000000000000000000000000000000000000").into(),
             Rule::num => {
                 let value_str = pair.as_str().trim();
                 if value_str.contains("e") {
@@ -175,20 +190,21 @@ fn percent_of(a: U256, b: U256) -> Option<U256> {
     a.checked_mul(b)?.checked_div(U256::from(100))
 }
 
-fn utility_fns(input: &str, value: &str) -> ParseResult {
+fn utility_fn_str(input: &str, value: &str) -> ParseResult {
     let value = trim_quotes(value);
     match input {
         // unix timestamp
         "unix" => U256::from(parse_datetime(&value)).into(),
         // checksum address
-        // "address" | "add" | "checksum" => parse_address(value).into(),
-        // // hash functions
-        // "hash" | "keccak256" | "sha3" => parse_keccak256(value),
+        "address" | "addr" | "checksum" => value
+            .parse::<Address>()
+            .unwrap_or_default()
+            .to_string()
+            .into(),
+        // hash functions
+        "keccak256" | "sha3" => keccak256(value).to_string().into(),
         // string manipulation
-        "lowercase" | "lower" => {
-            log!("lowercase: {}", value.to_lowercase());
-            value.to_lowercase().into()
-        }
+        "lowercase" | "lower" => value.to_lowercase().into(),
         "uppercase" | "upper" => value.to_uppercase().into(),
         "base64_encode" | "b64encode" | "b64_encode" => URL_SAFE.encode(value).into(),
         "base64_decode" | "b64decode" | "b64_decode" => match URL_SAFE.decode(value) {
@@ -198,7 +214,31 @@ fn utility_fns(input: &str, value: &str) -> ParseResult {
                 ParseResult::NAN
             }
         },
+        "parse_units" => parse_units(&value),
         // not supported
+        _ => ParseResult::NAN,
+    }
+}
+
+fn utility_fn_val(input: &str, value: U256) -> ParseResult {
+    match input {
+        "parse_ether" => format_ether(value).into(),
+        // not supported
+        _ => ParseResult::NAN,
+    }
+}
+
+fn utility_fn_args(input: &str, mut pairs: Pairs<Rule>) -> ParseResult {
+    let mut value = pairs.next().unwrap().into_inner();
+    match eval(value) {
+        ParseResult::Value(value) => {
+            let args = pairs.next().unwrap().as_str();
+            match input {
+                "parse_units" => format_units(value, args).ok().into(),
+                // not supported
+                _ => ParseResult::NAN,
+            }
+        },
         _ => ParseResult::NAN,
     }
 }
@@ -215,9 +255,25 @@ fn parse_encoded_utility_fn(input: &str, name: &str) -> Option<String> {
     None
 }
 
+fn parse_units(input: &str) -> ParseResult {
+    let input = input.replace(' ', "");
+    let parts: Vec<&str> = input.split(',').collect();
+    let value = parts[0];
+    match parts.len() {
+        1 => match parts[0].parse::<U256>().ok() {
+            Some(u) => format_units(u, 18).ok().into(),
+            None => ParseResult::NAN,
+        },
+        2 => match parts[0].parse::<U256>().ok() {
+            Some(u) => format_units(u, parts[1]).ok().into(),
+            None => ParseResult::NAN,
+        },
+        _ => ParseResult::NAN,
+    }
+}
 fn parse_datetime(input: &str) -> i64 {
-    let std_input = input.replace(&['-', '/', ':', 'T', '+'][..], ",");
-    let parts: Vec<&str> = std_input.split(',').collect();
+    let input = input.replace(&['-', '/', ':', 'T', '+'][..], ",");
+    let parts: Vec<&str> = input.split(',').collect();
     let mut date_parts = [0 as u32; 6];
     for (i, part) in parts.iter().enumerate() {
         if i < date_parts.len() {
