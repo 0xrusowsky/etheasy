@@ -87,4 +87,7 @@ command_arguments = ["Hello", "Trunk!"]
 # uses the build stage, meaning it executes in parallel with all of the existing asset pipelines.
 stage = "build"
 command = "sh"
-command_arguments = ["-c", "npx tailwindcss -o $TRUNK_STAGING_DIR/app.css"]
+command_arguments = [
+    "-c",
+    "arch -x86_64 ./tailwindcss -i src/tailwind.css -o $TRUNK_STAGING_DIR/tailwind.css",
+]

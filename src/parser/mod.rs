@@ -118,6 +118,7 @@ fn eval(expression: Pairs<Rule>) -> ParseResult {
             }
             Rule::now => U256::from(Utc::now().timestamp()).into(),
             Rule::addr_zero => String::from("0x0000000000000000000000000000000000000000").into(),
+            Rule::max_uint => "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff".parse::<U256>().ok().into(),
             Rule::num => {
                 let value_str = pair.as_str().trim();
                 if value_str.contains("e") {
@@ -144,6 +145,7 @@ fn eval(expression: Pairs<Rule>) -> ParseResult {
                 };
                 U256::from_str_radix(bin, 2).ok().into()
             }
+            Rule::quote => trim_quotes(pair.as_str()).into(),
             Rule::expr => eval(pair.into_inner()),
             _ => ParseResult::NAN,
         },
@@ -199,7 +201,10 @@ fn utility_fn_str(input: &str, value: &str) -> ParseResult {
         "keccak256" | "sha3" => keccak256(value).to_string().into(),
         "selector" => keccak256(value.replace(' ', "")).to_string()[..10].to_string().into(),
         "guess_selector" | "fn_from_selector" => "to do".into(),
+        "right_pad" | "pad_right" | "rpad" => "to do".into(),
+        "left_pad" | "pad_left" | "lpad" => "to do".into(),
         // string manipulation
+        "count" | "chars" | "char_count" | "count_chars" => U256::from(value.len()).into(),
         "lowercase" | "lower" => value.to_lowercase().into(),
         "uppercase" | "upper" => value.to_uppercase().into(),
         "base64_encode" | "b64encode" | "b64_encode" => URL_SAFE.encode(value).into(),
@@ -210,31 +215,44 @@ fn utility_fn_str(input: &str, value: &str) -> ParseResult {
                 ParseResult::NAN
             }
         },
-        // not supported
         _ => ParseResult::NAN,
     }
 }
 
 fn utility_fn_val(input: &str, value: U256) -> ParseResult {
     match input {
-        "parse_ether" | "format_ether" => format_ether(value).into(),
-        // not supported
+        "format_units" | "format_ether" => format_ether(value).into(),
         _ => ParseResult::NAN,
     }
 }
 
 fn utility_fn_args(input: &str, mut pairs: Pairs<Rule>) -> ParseResult {
-    let mut value = pairs.next().unwrap().into_inner();
-    match eval(value) {
-        ParseResult::Value(value) => {
-            let args = pairs.next().unwrap().as_str();
-            match input {
-                "parse_units" | "format_units" => format_units(value, args).ok().into(),
-                // not supported
-                _ => ParseResult::NAN,
+    let value = pairs.next().unwrap();
+    let value_str = value.clone().as_str();
+    let value_inner = value.into_inner();
+    // if value is a quote, value_inner will be empty
+    if value_inner.len() == 0 {
+        let args = trim_quotes(pairs.next().unwrap().as_str());
+        match input {
+            "count" | "chars" | "char_count" | "count_chars" => U256::from(&value_str.len() - value_str.replace(&args, "").len()).into(),
+            _ => ParseResult::NAN,
+        }
+    } else {
+        match eval(value_inner) {
+            ParseResult::Value(value) => {
+                let args = pairs.next().unwrap().as_str();
+                match input {
+                    "format_units" => format_units(value, args).ok().into(),
+                    "left_pad" | "lpad" => "to do".into(),
+                    "right_pad" | "rpad" => "to do".into(),
+                    _ => ParseResult::NAN,
+                }
+            },
+            _ => {
+                log!("Ups");
+                ParseResult::NAN
             }
-        },
-        _ => ParseResult::NAN,
+        }
     }
 }
 

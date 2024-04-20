@@ -1,5 +1,5 @@
 WHITESPACE = _{ " " | "\t"}
-URL_SAFE = _{ ASCII_ALPHANUMERIC | "-" | "_" | "." | "~" | "!" | "*" | "'" | "(" | ")" | "," | ";" | ":" | "@" | "&" | "=" | "+" | "$" | "/" | "?" | "%" }
+URL_SAFE = _{ ASCII_ALPHANUMERIC | "-" | "_" | "." | "~" | "!" | "*" | "(" | ")" | "," | ";" | ":" | "@" | "&" | "=" | "+" | "$" | "/" | "?" | "%" }
 ident = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* ~ "'"* }
 int = { ("+" | "-")? ~ ASCII_DIGIT+ }
 num = @{ int ~ ("." ~ ASCII_DIGIT*)? ~ (^"e" ~ int)? }
@@ -15,9 +15,10 @@ unix = { "unix(" ~
     ('0'..'6')* ~ ('0'..'9')* ~ ")"
 }
 
+max_uint = { "max u256" | "max_u256" | "max uint" | "max_uint" | "type(uint256).max" | "uint256(0)" | "U256::max()" }
 addr_zero = { "address(0)" | "addr(0)" | "address zero" | "zero address" | "zeroaddress" | "zadd" }
 now = { "now" | "current time" }
-constants = _{ now | addr_zero }
+constants = _{ now | addr_zero | max_uint }
 
 infix = _{ subtract | add | multiply | divide | power | rightShift | leftShift | modulus }
 add         = { "+" | "with" | "plus" | "add" }
@@ -31,7 +32,7 @@ leftShift   = { "<<" }
 
 function_val = {ident ~ "(" ~ expr ~ ")" }
 function_str = { unix | ident ~ "(" ~ quote ~ ")"}
-function_args = { ident ~ "(" ~ expr ~ ("," ~ expr)+ ~ ")" }
+function_args = { ident ~ "(" ~ ( quote | expr ) ~ ("," ~ ( quote | expr ))* ~ ")" }
 function = _{ function_val | function_str | function_args }
 atom = _{ hex | bin | constants | function | ident | convert | num | "(" ~ expr ~ ")"  }
 expr = { atom ~ (infix ~ atom)* }
