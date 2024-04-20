@@ -1,6 +1,5 @@
 use super::parser;
-use alloy_core::primitives::U256;
-use alloy_core::primitives::{B256, B64};
+use alloy_core::primitives::{B256, U256, B64};
 use web_sys::HtmlTextAreaElement;
 use yew::prelude::*;
 use yew::Component;
