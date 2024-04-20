@@ -1,6 +1,5 @@
 use super::parser::{self, types::ParseResult};
-use alloy_core::primitives::U256;
-use alloy_core::primitives::{B256, B64};
+use alloy_core::primitives::{B256, U256, B64};
 use web_sys::HtmlTextAreaElement;
 use yew::prelude::*;
 use yew::Component;
@@ -26,6 +25,17 @@ struct Frame {
     dec: String,
     hex: String,
     total: U256,
+    toggle: bool,
+}
+
+impl Frame {
+    fn toggle(&mut self) {
+        self.toggle = !self.toggle;
+    }
+
+    fn is_toggled(&self) -> bool {
+        self.toggle
+    }
 }
 
 impl Frame {
@@ -87,6 +97,7 @@ impl Component for Frame {
             dec: String::from(""),
             hex: String::from(""),
             total: U256::from(0),
+            toggle: false,
         }
     }
 
@@ -105,6 +116,42 @@ impl Component for Frame {
             }
             Msg::LightMode => {
                 self.set_light_mode();
+            }
+            Msg::Toggle => {
+                self.toggle();
+
+                let mut buffer_i = 0;
+                let mut buffer_str = "".to_string();
+                let mut output_dec = "".to_string();
+                let mut output_hex = "".to_string();
+                let split = self.hex.trim_end_matches("\n").split("\n");
+
+                for mut s in split {
+                    log!("s: {:?}", s);
+                    log!("buffer_i: {:?}", buffer_i);
+                    if s.len() == 0 {
+                        continue;
+                    }
+                    // If previously toggled, buffer the string until it is complete
+                    if !self.is_toggled() && s != "-" {
+                        buffer_str = format!("{}{}", buffer_str, s);
+                        if buffer_i < 2 {
+                            buffer_i += 1;
+                            continue;
+                        }
+                        buffer_i = 0;
+                        s = &buffer_str;
+                    }
+
+                    let u = s.parse::<U256>().ok();
+                    buffer_str = "".to_string();
+                    let (dec, hex) = parser::utils::stringify(u, self.is_toggled());
+                    output_dec = format!("{}{}\n", output_dec, dec);
+                    output_hex = format!("{}{}\n", output_hex, hex);
+                }
+
+                self.dec = output_dec;
+                self.hex = output_hex;
             }
         };
         true
