@@ -5,9 +5,9 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        ruso: {
-          dark: "#16181C",
-          dark_code: "#222831", //"#282A38",
+        dark: {
+          primary: "#16181C",
+          code: "#222831",
         },
       },
     },
