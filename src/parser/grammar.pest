@@ -1,9 +1,11 @@
-WHITESPACE = _{ " " | "\t" }
+WHITESPACE = _{ " " | "\t"}
+URL_SAFE = _{ ASCII_ALPHANUMERIC | "-" | "_" | "." | "~" | "!" | "*" | "(" | ")" | "," | ";" | ":" | "@" | "&" | "=" | "+" | "$" | "/" | "?" | "%" }
 ident = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* ~ "'"* }
 int = { ("+" | "-")? ~ ASCII_DIGIT+ }
 num = @{ int ~ ("." ~ ASCII_DIGIT*)? ~ (^"e" ~ int)? }
 hex = { ("0x" | "x") ~ ('0'..'9' | 'a'..'f' | 'A'..'F')+}
 bin = { ("0b" | "b") ~ ("0" | "1")+}
+quote = { ("'" | "\u{0022}") ~ URL_SAFE+ ~ (( " " | "\t") ~ URL_SAFE+)* ~ ("'" | "\u{0022}")}
 unix = { "unix(" ~
 	('0'..'9') ~ ('0'..'9') ~ ('0'..'9')* ~ ('0'..'9')* ~ ("-" | ",") ~
     ('0'..'9') ~ ('0'..'9')* ~ ("-" | ",") ~
@@ -13,10 +15,12 @@ unix = { "unix(" ~
     ('0'..'6')* ~ ('0'..'9')* ~ ")"
 }
 
+max_uint = { "max u256" | "max_u256" | "max uint" | "max_uint" | "type(uint256).max" | "uint256(0)" | "U256::max()" }
+addr_zero = { "address(0)" | "addr(0)" | "address zero" | "zero address" | "zeroaddress" | "zadd" }
 now = { "now" | "current time" }
-constants = _{ now }
+constants = _{ now | addr_zero | max_uint }
 
-infix = _{ subtract | add | multiply | divide | power | percentOf | percentOn | rightShift | leftShift | modulus }
+infix = _{ subtract | add | multiply | divide | power | rightShift | leftShift | modulus }
 add         = { "+" | "with" | "plus" | "add" }
 subtract    = { "-" | "without" | "subtract" | "minus" }
 multiply    = { "*" | "times" | "multiply by" | "mul" }
@@ -25,10 +29,11 @@ power       = { "^" | "power" | "pow" }
 modulus     = { "%" | "mod" }
 rightShift  = { ">>" }
 leftShift   = { "<<" }
-percentOf   = { "percent of" | "%" ~ "of" }
-percentOn   = { "percent on" | "%" ~ "on" }
 
-function = { unix | ident ~ "(" ~ expr ~ ")" }
+function_val = {ident ~ "(" ~ expr ~ ")" }
+function_str = { unix | ident ~ "(" ~ quote ~ ")"}
+function_args = { ident ~ "(" ~ ( quote | expr ) ~ ("," ~ ( quote | expr ))* ~ ")" }
+function = _{ function_val | function_str | function_args }
 atom = _{ hex | bin | constants | function | ident | convert | num | "(" ~ expr ~ ")"  }
 expr = { atom ~ (infix ~ atom)* }
 assign = { ident ~ "=" ~ expr }

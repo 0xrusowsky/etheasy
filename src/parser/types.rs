@@ -1,19 +1,25 @@
-pub use alloy_core::primitives::U256;
-use alloy_core::primitives::*;
+use alloy_core::primitives::U256;
 
-pub enum FloatOrU256 {
-    Float(f64),
-    U256(U256),
+pub enum ParseResult {
+    Value(U256),
+    String(String),
     NAN,
 }
 
-impl FloatOrU256 {
-    pub fn is_f64(&self) -> bool {
-        matches!(self, Self::Float(_))
+impl ParseResult {
+    pub fn is_str(&self) -> bool {
+        matches!(self, Self::String(_))
+    }
+
+    pub fn is_address(&self) -> bool {
+        match self {
+            Self::String(s) => s.starts_with("0x") && s.len() == 42,
+            _ => false,
+        }
     }
 
     pub fn is_u256(&self) -> bool {
-        matches!(self, Self::U256(_))
+        matches!(self, Self::Value(_))
     }
 
     pub fn is_nan(&self) -> bool {
@@ -21,34 +27,38 @@ impl FloatOrU256 {
     }
 }
 
-impl TryFrom<FloatOrU256> for f64 {
-    type Error = &'static str;
+impl From<String> for ParseResult {
+    fn from(s: String) -> Self {
+        ParseResult::String(s)
+    }
+}
 
-    fn try_from(value: FloatOrU256) -> Result<Self, Self::Error> {
-        match value {
-            FloatOrU256::Float(f) => Ok(f),
-            FloatOrU256::U256(u) => {
-                if u <= U256::from(u64::MAX) {
-                    Ok(u.saturating_to::<u64>() as f64)
-                } else {
-                    Err("Cannot convert U256 to f64 without loss of precision")
-                }
-            }
-            //.to_f64()
-            //.ok_or("Cannot convert U256 to f64 without loss of precision"),
-            FloatOrU256::NAN => Err("Cannot convert U256 to f64 without loss of precision"),
+impl From<&str> for ParseResult {
+    fn from(s: &str) -> Self {
+        ParseResult::String(s.to_string())
+    }
+}
+
+impl From<U256> for ParseResult {
+    fn from(u: U256) -> Self {
+        ParseResult::Value(u)
+    }
+}
+
+impl From<Option<U256>> for ParseResult {
+    fn from(u: Option<U256>) -> Self {
+        match u {
+            Some(u) => ParseResult::Value(u),
+            None => ParseResult::NAN,
         }
     }
 }
 
-impl From<f64> for FloatOrU256 {
-    fn from(f: f64) -> Self {
-        FloatOrU256::Float(f)
-    }
-}
-
-impl From<U256> for FloatOrU256 {
-    fn from(u: U256) -> Self {
-        FloatOrU256::U256(u)
+impl From<Option<String>> for ParseResult {
+    fn from(s: Option<String>) -> Self {
+        match s {
+            Some(s) => ParseResult::String(s),
+            None => ParseResult::NAN,
+        }
     }
 }

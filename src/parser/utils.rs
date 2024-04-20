@@ -1,10 +1,12 @@
 use alloy_core::primitives::{B256, U256};
 use gloo_console::*;
 
-pub fn stringify(u: Option<U256>, full: bool) -> (String, String) {
+use super::types::ParseResult;
+
+pub fn stringify(u: ParseResult, full: bool) -> (String, String) {
     match u {
-        None => ("-".to_string(), "-".to_string()),
-        Some(u) => {
+        ParseResult::NAN => ("-".to_string(), "-".to_string()),
+        ParseResult::Value(u) => {
             let dec = u.to_string();
             let hex: B256 = u.into();
             let hex_str = hex.to_string();
@@ -18,17 +20,37 @@ pub fn stringify(u: Option<U256>, full: bool) -> (String, String) {
                     (dec, hex_formatted)
                 }
             } else {
-                log!("hex_str length: {}", hex_str.len());
-                // For the `full` true case, check if the hex string is exactly 66 characters long
-                let formatted_hex = format!(
-                    "0x\n{}\n{}",
-                    hex_str[2..34].to_string(),
-                    hex_str[34..].to_string()
-                );
-                (format!("-\n-\n{}", dec), formatted_hex)
+                ("-".to_string(), hex_str)
             }
         }
+        ParseResult::String(mut s) => {
+            if !s.starts_with("0x") {
+                s = format!("'{}'", s);
+            }
+            ("-".to_string(), s)
+        }
     }
+}
+
+pub fn trim_quotes(input: &str) -> String {
+    let mut chars = input.chars();
+    // Check if the first character is a quote
+    if let Some(first) = chars.next() {
+        if first == '"' || first == '\'' {
+            // Check if the last character is also a quote of the same type
+            // Must collect into Vec to access the last element as `chars` is an iterator
+            let mut chars: Vec<char> = chars.collect();
+            if chars.pop() == Some(first) {
+                // If both conditions are true, return the string without the first and last character
+                return chars.into_iter().collect();
+            }
+            // If only the first character was a quote, rebuild the string with the remaining characters
+            chars.insert(0, first);
+            return chars.into_iter().collect();
+        }
+    }
+    // Return the original input if no modifications were made
+    input.to_string()
 }
 
 pub fn scientific_to_u256(s: &str) -> Option<U256> {
