@@ -1,7 +1,7 @@
 #![allow(deprecated)]
 use alloy_core::primitives::{
     utils::{format_ether, format_units, keccak256},
-    Address, U256,
+    Address, Bytes, B256, U256,
 };
 use base64::{engine::general_purpose::URL_SAFE, Engine as _};
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime, TimeZone, Utc};
@@ -194,13 +194,16 @@ fn utility_fn_str(input: &str, value: &str) -> ParseResult {
     let value = trim_quotes(value);
     match input {
         // unix timestamp
-        "unix" => U256::from(parse_datetime(&value)).into(),
+        "unix" => U256::from(parse_datetime(value)).into(),
         // evm utils
-        "address" | "addr" | "checksum" => value
-            .parse::<Address>()
-            .unwrap_or_default()
-            .to_string()
-            .into(),
+        "bytes32" => match parse_evm_type(value) {
+            Some(value) => value.parse::<B256>().unwrap_or_default().to_string().into(),
+            None => ParseResult::NAN,
+        },
+        "address" | "addr" | "checksum" => {
+            let u = value.parse::<U256>().unwrap_or_default();
+            u256_to_address(u).to_string().into()
+        }
         "keccak256" | "sha3" => keccak256(value).to_string().into(),
         "selector" => keccak256(value.replace(' ', "")).to_string()[..10]
             .to_string()
@@ -209,7 +212,7 @@ fn utility_fn_str(input: &str, value: &str) -> ParseResult {
         "right_pad" | "pad_right" | "rpad" => "to do".into(),
         "left_pad" | "pad_left" | "lpad" => "to do".into(),
         // string manipulation
-        "count" | "chars" | "char_count" | "count_chars" => U256::from(value.len()).into(),
+        "len" | "chars" => U256::from(value.len()).into(),
         "lowercase" | "lower" => value.to_lowercase().into(),
         "uppercase" | "upper" => value.to_uppercase().into(),
         "base64_encode" | "b64encode" | "b64_encode" => URL_SAFE.encode(value).into(),
@@ -227,6 +230,9 @@ fn utility_fn_str(input: &str, value: &str) -> ParseResult {
 fn utility_fn_val(input: &str, value: U256) -> ParseResult {
     match input {
         "format_units" | "format_ether" => format_ether(value).into(),
+        // evm utils
+        "bytes32" => B256::from(value).to_string().into(),
+        "address" | "addr" | "checksum" => u256_to_address(value).to_string().into(),
         _ => ParseResult::NAN,
     }
 }
@@ -235,23 +241,37 @@ fn utility_fn_args(input: &str, mut pairs: Pairs<Rule>) -> ParseResult {
     let value = pairs.next().unwrap();
     let value_str = value.clone().as_str();
     let value_inner = value.into_inner();
+    log!("value: {}", value_str);
     // if value is a quote, value_inner will be empty
     if value_inner.len() == 0 {
+        let value_str = trim_quotes(value_str);
         let args = trim_quotes(pairs.next().unwrap().as_str());
+        log!("string args:", &args);
         match input {
-            "count" | "chars" | "char_count" | "count_chars" => {
-                U256::from(&value_str.len() - value_str.replace(&args, "").len()).into()
-            }
+            "count" => U256::from(&value_str.len() - value_str.replace(&args, "").len()).into(),
+            "left_pad" | "lpad" => match args.parse::<u8>() {
+                Ok(v) => utils::left_pad(value_str, v.into()).into(),
+                Err(e) => {
+                    log!("Error parsing left_pad args", e.to_string());
+                    ParseResult::NAN
+                }
+            },
+            "right_pad" | "rpad" => match args.parse::<u8>() {
+                Ok(v) => utils::right_pad(value_str, v.into()).into(),
+                Err(e) => {
+                    log!("Error parsing right_pad args", e.to_string());
+                    ParseResult::NAN
+                }
+            },
             _ => ParseResult::NAN,
         }
     } else {
         match eval(value_inner) {
             ParseResult::Value(value) => {
                 let args = pairs.next().unwrap().as_str();
+                log!("uint args:", args);
                 match input {
                     "format_units" => format_units(value, args).ok().into(),
-                    "left_pad" | "lpad" => "to do".into(),
-                    "right_pad" | "rpad" => "to do".into(),
                     _ => ParseResult::NAN,
                 }
             }
@@ -272,7 +292,22 @@ fn parse_encoded_utility_fn(input: &str, name: &str) -> Option<String> {
     None
 }
 
-fn parse_datetime(input: &str) -> i64 {
+fn parse_evm_type(input: String) -> Option<String> {
+    if input.starts_with("0x") {
+        if input.len() > 1 {
+            let value = &input[2..];
+            if value.len() % 2 == 0 {
+                return Some(value.to_string());
+            } else {
+                return Some(format!("0{}", value));
+            }
+        }
+        return None;
+    }
+    None
+}
+
+fn parse_datetime(input: String) -> i64 {
     let input = input.replace(&['-', '/', ':', 'T'][..], ",");
     let parts: Vec<&str> = input.split(',').collect();
     let mut date_parts = [0 as u32; 6];

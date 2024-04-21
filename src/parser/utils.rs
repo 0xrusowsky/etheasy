@@ -1,7 +1,5 @@
-use alloy_core::primitives::{B256, U256};
-use gloo_console::*;
-
 use super::types::ParseResult;
+use alloy_core::primitives::{Address, B256, U256};
 
 pub fn stringify(u: ParseResult, full: bool) -> (String, String) {
     match u {
@@ -53,6 +51,13 @@ pub fn trim_quotes(input: &str) -> String {
     input.to_string()
 }
 
+pub fn u256_to_address(u: U256) -> Address {
+    let a = B256::from(u).to_string();
+    format!("0x{}", &a[26..])
+        .parse::<Address>()
+        .unwrap_or_default()
+}
+
 pub fn scientific_to_u256(s: &str) -> Option<U256> {
     let mut split_iter = s.split("e");
     let mut float_iter = split_iter.next().unwrap_or("0").split(".");
@@ -73,8 +78,12 @@ pub fn scientific_to_u256(s: &str) -> Option<U256> {
     }
 }
 
-pub fn lead_zeros(s: &str) -> usize {
-    s.chars().take_while(|&c| c == '0').count()
+pub fn left_pad(s: String, width: usize) -> String {
+    format!("{:0>width$}", s, width = width)
+}
+
+pub fn right_pad(s: String, width: usize) -> String {
+    format!("{:0<width$}", s, width = width)
 }
 
 pub fn remove_trailing_zeros(s: &str) -> String {

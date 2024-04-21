@@ -6,13 +6,14 @@ num = @{ int ~ ("." ~ ASCII_DIGIT*)? ~ (^"e" ~ int)? }
 hex = { ("0x" | "x") ~ ('0'..'9' | 'a'..'f' | 'A'..'F')+}
 bin = { ("0b" | "b") ~ ("0" | "1")+}
 quote = { ("'" | "\u{0022}") ~ URL_SAFE+ ~ (( " " | "\t") ~ URL_SAFE+)* ~ ("'" | "\u{0022}")}
-unix = { "unix(" ~
+unix = { "unix(" ~ ("'" | "\u{0022}")? ~
 	('0'..'9') ~ ('0'..'9') ~ ('0'..'9')* ~ ('0'..'9')* ~ ("-" | ",") ~
     ('0'..'9') ~ ('0'..'9')* ~ ("-" | ",") ~
     ('0'..'9') ~ ('0'..'9')* ~ ("T" | ",")* ~
     ('0'..'6')* ~ ('0'..'9')* ~ (":" | ",")* ~
     ('0'..'6')* ~ ('0'..'9')* ~ (":" | ",")* ~
-    ('0'..'6')* ~ ('0'..'9')* ~ ")"
+    ('0'..'6')* ~ ('0'..'9')* ~
+    ("'" | "\u{0022}")? ~ ")"
 }
 
 max_uint = { "max u256" | "max_u256" | "max uint" | "max_uint" | "type(uint256).max" | "uint256(0)" | "U256::max()" }
@@ -20,12 +21,12 @@ addr_zero = { "address(0)" | "addr(0)" | "address zero" | "zero address" | "zero
 now = { "now" | "current time" }
 constants = _{ now | addr_zero | max_uint }
 
-infix = _{ subtract | add | multiply | divide | power | rightShift | leftShift | modulus }
+infix = _{ subtract | add | power | multiply | divide | rightShift | leftShift | modulus }
 add         = { "+" | "with" | "plus" | "add" }
 subtract    = { "-" | "without" | "subtract" | "minus" }
 multiply    = { "*" | "times" | "multiply by" | "mul" }
 divide      = { "/" | "divide by" | "divide" }
-power       = { "^" | "power" | "pow" }
+power       = { "**" | "^" | "power" | "pow" }
 modulus     = { "%" | "mod" }
 rightShift  = { ">>" }
 leftShift   = { "<<" }
