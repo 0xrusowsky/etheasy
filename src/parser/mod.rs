@@ -118,7 +118,10 @@ fn eval(expression: Pairs<Rule>) -> ParseResult {
             }
             Rule::now => U256::from(Utc::now().timestamp()).into(),
             Rule::addr_zero => String::from("0x0000000000000000000000000000000000000000").into(),
-            Rule::max_uint => "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff".parse::<U256>().ok().into(),
+            Rule::max_uint => "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+                .parse::<U256>()
+                .ok()
+                .into(),
             Rule::num => {
                 let value_str = pair.as_str().trim();
                 if value_str.contains("e") {
@@ -199,7 +202,9 @@ fn utility_fn_str(input: &str, value: &str) -> ParseResult {
             .to_string()
             .into(),
         "keccak256" | "sha3" => keccak256(value).to_string().into(),
-        "selector" => keccak256(value.replace(' ', "")).to_string()[..10].to_string().into(),
+        "selector" => keccak256(value.replace(' ', "")).to_string()[..10]
+            .to_string()
+            .into(),
         "guess_selector" | "fn_from_selector" => "to do".into(),
         "right_pad" | "pad_right" | "rpad" => "to do".into(),
         "left_pad" | "pad_left" | "lpad" => "to do".into(),
@@ -234,7 +239,9 @@ fn utility_fn_args(input: &str, mut pairs: Pairs<Rule>) -> ParseResult {
     if value_inner.len() == 0 {
         let args = trim_quotes(pairs.next().unwrap().as_str());
         match input {
-            "count" | "chars" | "char_count" | "count_chars" => U256::from(&value_str.len() - value_str.replace(&args, "").len()).into(),
+            "count" | "chars" | "char_count" | "count_chars" => {
+                U256::from(&value_str.len() - value_str.replace(&args, "").len()).into()
+            }
             _ => ParseResult::NAN,
         }
     } else {
@@ -247,11 +254,8 @@ fn utility_fn_args(input: &str, mut pairs: Pairs<Rule>) -> ParseResult {
                     "right_pad" | "rpad" => "to do".into(),
                     _ => ParseResult::NAN,
                 }
-            },
-            _ => {
-                log!("Ups");
-                ParseResult::NAN
             }
+            _ => ParseResult::NAN,
         }
     }
 }
@@ -268,25 +272,8 @@ fn parse_encoded_utility_fn(input: &str, name: &str) -> Option<String> {
     None
 }
 
-fn parse_units(input: &str) -> ParseResult {
-    let input = input.replace(' ', "");
-    let parts: Vec<&str> = input.split(',').collect();
-    let value = parts[0];
-    match parts.len() {
-        1 => match parts[0].parse::<U256>().ok() {
-            Some(u) => format_units(u, 18).ok().into(),
-            None => ParseResult::NAN,
-        },
-        2 => match parts[0].parse::<U256>().ok() {
-            Some(u) => format_units(u, parts[1]).ok().into(),
-            None => ParseResult::NAN,
-        },
-        _ => ParseResult::NAN,
-    }
-}
-
 fn parse_datetime(input: &str) -> i64 {
-    let input = input.replace(&['-', '/', ':', 'T', '+'][..], ",");
+    let input = input.replace(&['-', '/', ':', 'T'][..], ",");
     let parts: Vec<&str> = input.split(',').collect();
     let mut date_parts = [0 as u32; 6];
     for (i, part) in parts.iter().enumerate() {
