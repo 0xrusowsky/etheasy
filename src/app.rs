@@ -5,8 +5,6 @@ use web_sys::HtmlTextAreaElement;
 use yew::prelude::*;
 use yew::Component;
 
-use gloo_console::*;
-
 enum Msg {
     AddText(String),
     Toggle,

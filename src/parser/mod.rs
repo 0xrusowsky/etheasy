@@ -255,10 +255,7 @@ fn utility_fn_args(input: &str, mut pairs: Pairs<Rule>) -> ParseResult {
                     _ => ParseResult::NAN,
                 }
             }
-            _ => {
-                log!("Ups");
-                ParseResult::NAN
-            }
+            _ => ParseResult::NAN,
         }
     }
 }
@@ -276,7 +273,7 @@ fn parse_encoded_utility_fn(input: &str, name: &str) -> Option<String> {
 }
 
 fn parse_datetime(input: &str) -> i64 {
-    let input = input.replace(&['-', '/', ':', 'T', '+'][..], ",");
+    let input = input.replace(&['-', '/', ':', 'T'][..], ",");
     let parts: Vec<&str> = input.split(',').collect();
     let mut date_parts = [0 as u32; 6];
     for (i, part) in parts.iter().enumerate() {
