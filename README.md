@@ -1,8 +1,8 @@
 # devm-toolkit
 
-`devm-toolkit` is a Rust-powered 🦀, comprehensive and easy-to-use toolkit designed to support developers working within the Ethereum Virtual Machine (EVM) ecosystem. Its lightweight, and flexible design combined with its speed, simplifies and accelerates the development process by providing an extensive range of common operations for EVM-related development.
+`devm-toolkit` is a Rust-powered 🦀, comprehensive, and easy-to-use toolkit designed to support Ethereum developers. Its lightweight and flexible design, combined with its speed, simplifies and accelerates the development process by providing an extensive range of common operations for EVM-related development.
 
-`devm-toolkit` is built with the following stack:
+The project is built with the following stack:
 - **Rust:** Blazzingly fast programming languange.
 - **Pest:** General purpose parser, for Rust.
 - **Alloy:** Library with core types for Rust-Ethereum.
