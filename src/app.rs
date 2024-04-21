@@ -1,5 +1,5 @@
 use super::parser::{self, types::ParseResult};
-use alloy_core::primitives::{B256, U256, B64};
+use alloy_core::primitives::{B256, B64, U256};
 use web_sys::HtmlTextAreaElement;
 use yew::prelude::*;
 use yew::Component;
@@ -25,64 +25,6 @@ struct Frame {
     dec: String,
     hex: String,
     total: U256,
-    toggle: bool,
-}
-
-impl Frame {
-    fn toggle(&mut self) {
-        self.toggle = !self.toggle;
-    }
-
-    fn is_toggled(&self) -> bool {
-        self.toggle
-    }
-}
-
-impl Frame {
-    fn toggle(&mut self) {
-        self.toggle = !self.toggle;
-    }
-
-    fn is_toggled(&self) -> bool {
-        self.toggle
-    }
-
-    fn set_dark_mode(&mut self) {
-        self.dark_mode = true;
-    }
-
-    fn set_light_mode(&mut self) {
-        self.dark_mode = false;
-    }
-
-    fn is_dark_mode(&self) -> bool {
-        self.dark_mode
-    }
-}
-
-impl Frame {
-    fn parse_input(&mut self) {
-        let mut output_dec = "".to_string();
-        let mut output_hex = "".to_string();
-        let mut total = U256::from(0);
-        let split = self.input.split('\n');
-
-        for s in split {
-            let p = parser::parse(s);
-            match p {
-                ParseResult::Value(u) => total = total.checked_add(u).unwrap(),
-                _ => (),
-            };
-
-            let (dec, hex) = parser::utils::stringify(p, self.is_toggled());
-            output_dec = format!("{}{}\n", output_dec, dec);
-            output_hex = format!("{}{}\n", output_hex, hex);
-        }
-
-        self.total = total;
-        self.dec = output_dec;
-        self.hex = output_hex;
-    }
 }
 
 impl Frame {
@@ -144,7 +86,6 @@ impl Component for Frame {
             dec: String::from(""),
             hex: String::from(""),
             total: U256::from(0),
-            toggle: false,
         }
     }
 
