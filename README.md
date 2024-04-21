@@ -1,3 +1,117 @@
 # devm-toolkit
 
-Rust-powered toolkit for smartcontract devs that inhabit the EVM.
+`devm-toolkit` is a Rust-powered 🦀, comprehensive and easy-to-use toolkit designed to support developers working within the Ethereum Virtual Machine (EVM) ecosystem. Its lightweight, and flexible design combined with its speed, simplifies and accelerates the development process by providing an extensive range of common operations for EVM-related development.
+
+`devm-toolkit` is built with the following stack:
+- **Rust:** Blazzingly fast programming languange.
+- **Pest:** General purpose parser, for Rust.
+- **Alloy:** Library with core types for Rust-Ethereum.
+- **Trunk:** WASM web application bundler, for Rust.
+- **Yew:** Front-end framework to build web apps with WASM, for Rust.
+- **Tailwind:** Framework for CSS styles.
+
+## Key Features
+
+### 📟 Built around U256
+
+First-class support for U256, the fundamental numerical type in EVM, to perform arithmetic and bitwise operations accurately. Numbers can be input as in decimal, hexadecimal, or binary form. It also supports scientific notation (rounded to an integer).
+
+```rs
+1.2e18                                    // scientific notation input (1200000)
+0b10110101                                // binary input (181)
+0x1234abcd                                // hexadecimal input (305441741)
+```
+
+### 🔢 Mathematical Operations
+
+Offers addition, subtraction, multiplication, division, modulo, power, and bit-shiftting, using `U256` to precisely handle large numbers.
+
+```rs
+0x11 + 0xAA                               // addition (187)
+0b11 - 0b10                               // substraction (1)
+2 * 3                                     // multiplication (6)
+10 / 3                                    // division (3)
+10 % 3                                    // modulo (1)
+2 ** 8                                    // power (256)
+5 >> 1                                    // right shift (2)
+5 << 1                                    // left shift (10)
+((2 * 3) ^ 4 - 5 % 2) / (3 << 1)          // complex expression (215)
+```
+
+### 🧮 Conversions
+
+Effortlessly convert between different units relevant to the EVM, such as gas or time units.
+
+```rs
+1 ether to gwei                           // gas unit conversion (1000000000)
+1 year to seconds                         // time unit conversion (31536000)
+```
+
+### ✏️ String Operations
+
+Simplify common string operations, including case conversions or character counting.
+
+```rs
+upper("hello")                            // upper case ('HELLO')
+lower("WORLD")                            // lower case ('world')
+count("foo bar")                          // count all character (7)
+count("foo bar", "o")                     // count input character (2)
+```
+
+### 🛠️ EVM-Related Operations
+
+Support common EVM-related operations to work with addresses, hashing, base64 encoding, or function selectors.
+
+```rs
+address(0)                                // zero address (0x0000000000000000000000000000000000000000)
+checksum(0x1234abcd)                      // address checksum (0x0000000000000000000000000000000000000000)
+selector("transfer(address,uint256)")     // 4-bytes function selector (0xa9059cbb)
+keccak256("hello world")                  // keccak hash (0x47173285a8d7341e5e972fc677286384f802f8ef42a5ec5f03bbfa254cb01fad)
+b64_encode("hello world")                 // base64 encode ('aGVsbG8gd29ybGQ=')
+b64_decode("aGVsbG8gd29ybGQ=")            // base64 decode ('hello world')
+```
+
+### 🕓 Miscellaneous
+
+Perform other operations, such as getting the current timestamp, or a specific unix timestamp.
+
+```rs
+now()                                     // current timestamp
+unix(2023,12,31,23,59,59)                 // unix timestamp, comma separated (1704067199)
+unix(2023-12-31T23:59:59)                 // unix timestamp, YYYY-MM-DDTHH:mm:ss (1704067199)
+```
+
+## Development
+
+To run the project locally:
+  1. Clone the repo with:
+     ```
+     # with ssh key
+     git clone git@github.com:0xrusowsky/devm-toolkit.git
+     
+     # otherwise
+     git clone https://github.com/0xrusowsky/devm-toolkit.git
+     ```
+  3. Install the dependencies by running the following command:
+     ```
+     cargo build
+     ```
+  4. After applying your changes, build and run the development server with:
+     ```
+     trunk serve --open
+     ```
+
+## Contribute
+
+Any contribution is welcome! Feel free to open a PR.
+
+## Acknowledgements
+
+`devm-toolkit` took inspiration from:
+- [qubit](https://github.com/abhimanyu003/qubit/tree/main) a calculator built with the same stack.
+- [dethtools](https://github.com/dethcrypto/dethtools) a flexible toolset for Ethereum developers.
+- [swiss-knife](https://github.com/swiss-knife-xyz/swiss-knife) a flexible †toolset for Ethereum developers.
+
+## License
+
+`devm-toolkit` is licensed under the [MIT License](LICENSE).
