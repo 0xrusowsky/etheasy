@@ -12,15 +12,17 @@ RUN curl -sLO https://github.com/tailwindlabs/tailwindcss/releases/latest/downlo
 RUN rustup target add wasm32-unknown-unknown && \
     cargo install wasm-bindgen-cli && cargo install --locked trunk
 
+# Pre-build dependencies with dummy main.rs
 COPY ./Cargo.toml .
 RUN mkdir src && echo "fn main() {}" > src/main.rs
 RUN cargo build --release
 
+# Build the actual project
 COPY . .
 RUN touch src/main.rs
-
 RUN trunk build --release
 RUN tailwindcss -i ./src/tailwind.css -o ./dist/tailwind.css --minify
 
+# Build the final nginx image with the compiled assets
 FROM nginx:alpine as release
 COPY --from=builder /app/dist/ /usr/share/nginx/html
