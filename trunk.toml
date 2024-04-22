@@ -68,23 +68,7 @@ wasm_opt = "version_116"
 # Default tailwindcss-cli version to download.
 tailwindcss = "3.3.5"
 
-## hooks
-# Hooks are optional, and default to `None`.
-# Hooks are executed as part of Trunk's main build pipeline, no matter how it is run.
-
 [[hooks]]
-# This hook example shows all the current available fields. It will execute the equivalent of
-# typing "echo Hello Trunk!" right at the start of the build process (even before the HTML file
-# is read). By default, the command is spawned directly and no shell is used.
-stage = "pre_build"
-command = "echo"
-command_arguments = ["Hello", "Trunk!"]
-
-[[hooks]]
-# This hook example shows running a command inside a shell. As a result, features such as variable
-# interpolation are available. This shows the TRUNK_STAGING_DIR environment variable, one of a set
-# of default variables that Trunk inserts into your hook's environment. Additionally, this hook
-# uses the build stage, meaning it executes in parallel with all of the existing asset pipelines.
 stage = "build"
 command = "sh"
 command_arguments = [
