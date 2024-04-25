@@ -48,13 +48,17 @@ unchecked(0 - 1)                          // unchecked operation (max_uint)
 unchecked(format_units(2**256, 4))        // composed unchecked operation ('0.0000') ))
 ```
 
-### 🧮 Conversions
+### 🛠️ EVM-Related Operations
 
-Effortlessly convert between different units relevant to the EVM, such as gas or time units.
+Support common EVM-related operations to work with addresses, hashing, base64 encoding, or function selectors.
 
 ```rs
-1 ether to gwei                           // gas unit conversion (1000000000)
-1 year to seconds                         // time unit conversion (31536000)
+address(0)                                // zero address (0x0000000000000000000000000000000000000000)
+checksum(0xd8da6bf2..7aa96045)            // address checksum (0xd8dA6BF2..7aA96045)
+selector("transfer(address,uint256)")     // 4-bytes function selector (0xa9059cbb)
+keccak256("hello world")                  // keccak hash (0x47173285a8d7341e5e972fc677286384f802f8ef42a5ec5f03bbfa254cb01fad)
+b64_encode("hello world")                 // base64 encode ('aGVsbG8gd29ybGQ=')
+b64_decode("aGVsbG8gd29ybGQ=")            // base64 decode ('hello world')
 ```
 
 ### ✏️ String Operations
@@ -68,17 +72,13 @@ count("foo bar")                          // count all character (7)
 count("foo bar", "o")                     // count input character (2)
 ```
 
-### 🛠️ EVM-Related Operations
+### 🧮 Conversions
 
-Support common EVM-related operations to work with addresses, hashing, base64 encoding, or function selectors.
+Effortlessly convert between different units relevant to the EVM, such as gas or time units.
 
 ```rs
-address(0)                                // zero address (0x0000000000000000000000000000000000000000)
-checksum(0xd8da6bf2..7aa96045)            // address checksum (0xd8dA6BF2..7aA96045)
-selector("transfer(address,uint256)")     // 4-bytes function selector (0xa9059cbb)
-keccak256("hello world")                  // keccak hash (0x47173285a8d7341e5e972fc677286384f802f8ef42a5ec5f03bbfa254cb01fad)
-b64_encode("hello world")                 // base64 encode ('aGVsbG8gd29ybGQ=')
-b64_decode("aGVsbG8gd29ybGQ=")            // base64 decode ('hello world')
+1 ether to gwei                           // gas unit conversion (1000000000)
+1 year to seconds                         // time unit conversion (31536000)
 ```
 
 ### 🕓 Miscellaneous
