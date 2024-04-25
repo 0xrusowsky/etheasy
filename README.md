@@ -1,6 +1,6 @@
-# devm-toolkit
+# etheasy: Ethereum development made easy
 
-`devm-toolkit` is a Rust-powered 🦀, comprehensive, and easy-to-use toolkit designed to support Ethereum developers. Its lightweight and flexible design, combined with its speed, simplifies and accelerates the development process by providing an extensive range of common operations for EVM-related development.
+`etheasy` is a Rust-powered 🦀, comprehensive, and easy-to-use toolkit designed to support Ethereum developers. Its lightweight and flexible design, combined with its speed, simplifies and accelerates the development process by providing an extensive range of common operations for EVM-related development.
 
 The project is built with the following stack:
 
@@ -101,10 +101,10 @@ To run the project locally:
 
    ```
    # with ssh key
-   git clone git@github.com:0xrusowsky/devm-toolkit.git
+   git clone git@github.com:0xrusowsky/etheasy.git
 
    # otherwise
-   git clone https://github.com/0xrusowsky/devm-toolkit.git
+   git clone https://github.com/0xrusowsky/etheasy.git
    ```
 
 2. Install the dependencies by running the following command:
@@ -122,7 +122,7 @@ Any contribution is welcome! Feel free to open a PR.
 
 ## Acknowledgements
 
-`devm-toolkit` took inspiration from:
+`etheasy` took inspiration from:
 
 - [qubit](https://github.com/abhimanyu003/qubit/tree/main) a calculator built with the same stack.
 - [dethtools](https://github.com/dethcrypto/dethtools) a flexible toolset for Ethereum developers.
@@ -130,4 +130,4 @@ Any contribution is welcome! Feel free to open a PR.
 
 ## License
 
-`devm-toolkit` is licensed under the [MIT License](LICENSE).
+`etheasy` is licensed under the [MIT License](LICENSE).

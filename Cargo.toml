@@ -1,12 +1,12 @@
 [package]
-name = "devm-toolkit"
+name = "etheasy"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-alloy-core = {version="0.6.4", features = ["std"]}
+alloy-core = { version = "0.6.4", features = ["std"] }
 base64 = "0.22.0"
 chrono = "0.4.37"
 float-pretty-print = "0.1.1"
@@ -15,4 +15,4 @@ lazy_static = "1.4.0"
 pest = "2.7.9"
 pest_derive = "2.7.9"
 web-sys = "0.3.69"
-yew = {version="0.21.0", features=["csr"]}
+yew = { version = "0.21.0", features = ["csr"] }
