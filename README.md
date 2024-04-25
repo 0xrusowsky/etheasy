@@ -3,6 +3,7 @@
 `devm-toolkit` is a Rust-powered 🦀, comprehensive, and easy-to-use toolkit designed to support Ethereum developers. Its lightweight and flexible design, combined with its speed, simplifies and accelerates the development process by providing an extensive range of common operations for EVM-related development.
 
 The project is built with the following stack:
+
 - **Rust:** Blazzingly fast programming languange.
 - **Pest:** General purpose parser, for Rust.
 - **Alloy:** Library with core types for Rust-Ethereum.
@@ -14,12 +15,13 @@ The project is built with the following stack:
 
 ### 📟 Built around U256
 
-First-class support for U256, the fundamental numerical type in EVM, to perform arithmetic and bitwise operations accurately. Numbers can be input as in decimal, hexadecimal, or binary form. It also supports scientific notation (rounded to an integer).
+First-class support for U256, the fundamental numerical type in EVM, to perform arithmetic and bitwise operations accurately. Numbers can be input as in decimal, hexadecimal, or binary form. It also supports scientific notation (rounded to an integer). Finally, the `max_uint` constant is available to represent the maximum value of a U256.
 
 ```rs
 1.2e18                                    // scientific notation input (1200000)
 0b10110101                                // binary input (181)
 0x1234abcd                                // hexadecimal input (305441741)
+max_uint                                  // maximum U256 value (0xf...f)
 ```
 
 ### 🔢 Mathematical Operations
@@ -33,9 +35,17 @@ Offers addition, subtraction, multiplication, division, modulo, power, and bit-s
 10 / 3                                    // division (3)
 10 % 3                                    // modulo (1)
 2 ** 8                                    // power (256)
+sqrt(25)                                  // square root (5)
+root(125, 3)                              // root (5)
 5 >> 1                                    // right shift (2)
 5 << 1                                    // left shift (10)
-((2 * 3) ^ 4 - 5 % 2) / (3 << 1)          // complex expression (215)
+```
+
+By default, all operations are checked for over/underflows. However, you can disable this feature by using the `unchecked` keyword.
+
+```rs
+unchecked(0 - 1)                          // unchecked operation (max_uint)
+unchecked(format_units(2**256, 4))        // composed unchecked operation ('0.0000') ))
 ```
 
 ### 🧮 Conversions
@@ -84,22 +94,25 @@ unix(2023-12-31T23:59:59)                 // unix timestamp, YYYY-MM-DDTHH:mm:ss
 ## Development
 
 To run the project locally:
-  1. Clone the repo with:
-     ```
-     # with ssh key
-     git clone git@github.com:0xrusowsky/devm-toolkit.git
-     
-     # otherwise
-     git clone https://github.com/0xrusowsky/devm-toolkit.git
-     ```
-  3. Install the dependencies by running the following command:
-     ```
-     cargo build
-     ```
-  4. After applying your changes, build and run the development server with:
-     ```
-     trunk serve --open
-     ```
+
+1. Clone the repo with:
+
+   ```
+   # with ssh key
+   git clone git@github.com:0xrusowsky/devm-toolkit.git
+
+   # otherwise
+   git clone https://github.com/0xrusowsky/devm-toolkit.git
+   ```
+
+2. Install the dependencies by running the following command:
+   ```
+   cargo build
+   ```
+3. After applying your changes, build and run the development server with:
+   ```
+   trunk serve --open
+   ```
 
 ## Contribute
 
@@ -108,6 +121,7 @@ Any contribution is welcome! Feel free to open a PR.
 ## Acknowledgements
 
 `devm-toolkit` took inspiration from:
+
 - [qubit](https://github.com/abhimanyu003/qubit/tree/main) a calculator built with the same stack.
 - [dethtools](https://github.com/dethcrypto/dethtools) a flexible toolset for Ethereum developers.
 - [swiss-knife](https://github.com/swiss-knife-xyz/swiss-knife) a flexible †toolset for Ethereum developers.

@@ -1,7 +1,7 @@
 #![allow(deprecated)]
 use alloy_core::primitives::{
     utils::{format_ether, format_units, keccak256},
-    Address, Bytes, B256, U256,
+    Address, Bytes, B256, U256, U64,
 };
 use base64::{engine::general_purpose::URL_SAFE, Engine as _};
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime, TimeZone, Utc};
@@ -41,12 +41,12 @@ lazy_static::lazy_static! {
 pub fn parse(input: &str) -> ParseResult {
     let parse_result = Calculator::parse(Rule::calculation, input);
     match parse_result {
-        Ok(r) => eval(r),
+        Ok(r) => eval(r, false),
         Err(_) => ParseResult::NAN,
     }
 }
 
-fn eval(expression: Pairs<Rule>) -> ParseResult {
+fn eval(expression: Pairs<Rule>, unchecked: bool) -> ParseResult {
     PREC_CLIMBER.climb(
         expression,
         |pair: Pair<Rule>| match pair.as_rule() {
@@ -93,9 +93,13 @@ fn eval(expression: Pairs<Rule>) -> ParseResult {
             Rule::function_val => {
                 let mut i = pair.into_inner();
                 let name = i.next().unwrap().as_str();
-                match eval(i) {
-                    ParseResult::Value(value) => utility_fn_val(name, value),
-                    _ => ParseResult::NAN,
+                if name == "unchecked" {
+                    eval(i, true)
+                } else {
+                    match eval(i, unchecked) {
+                        ParseResult::Value(value) => utility_fn_val(name, value),
+                        _ => ParseResult::NAN,
+                    }
                 }
             }
             Rule::function_str => {
@@ -114,7 +118,7 @@ fn eval(expression: Pairs<Rule>) -> ParseResult {
             Rule::function_args => {
                 let mut i = pair.into_inner();
                 let name = i.next().unwrap().as_str();
-                utility_fn_args(name, i)
+                utility_fn_args(name, i, unchecked)
             }
             Rule::now => U256::from(Utc::now().timestamp()).into(),
             Rule::addr_zero => String::from("0x0000000000000000000000000000000000000000").into(),
@@ -149,7 +153,7 @@ fn eval(expression: Pairs<Rule>) -> ParseResult {
                 U256::from_str_radix(bin, 2).ok().into()
             }
             Rule::quote => trim_quotes(pair.as_str()).into(),
-            Rule::expr => eval(pair.into_inner()),
+            Rule::expr => eval(pair.into_inner(), unchecked),
             _ => ParseResult::NAN,
         },
         |lhs: ParseResult, op: Pair<Rule>, rhs: ParseResult| {
@@ -158,11 +162,39 @@ fn eval(expression: Pairs<Rule>) -> ParseResult {
                 _ => return ParseResult::NAN,
             };
             match op.as_rule() {
-                Rule::add => lhs.checked_add(rhs).into(),
-                Rule::subtract => lhs.checked_sub(rhs).into(),
-                Rule::multiply => lhs.checked_mul(rhs).into(),
+                Rule::add => {
+                    if unchecked {
+                        let (result, _) = lhs.overflowing_add(rhs);
+                        result.into()
+                    } else {
+                        lhs.checked_add(rhs).into()
+                    }
+                }
+                Rule::subtract => {
+                    if unchecked {
+                        let (result, _) = lhs.overflowing_sub(rhs);
+                        result.into()
+                    } else {
+                        lhs.checked_sub(rhs).into()
+                    }
+                }
+                Rule::multiply => {
+                    if unchecked {
+                        let (result, _) = lhs.overflowing_mul(rhs);
+                        result.into()
+                    } else {
+                        lhs.checked_mul(rhs).into()
+                    }
+                }
                 Rule::divide => lhs.checked_div(rhs).into(),
-                Rule::power => lhs.checked_pow(rhs).into(),
+                Rule::power => {
+                    if unchecked {
+                        let (result, _) = lhs.overflowing_pow(rhs);
+                        result.into()
+                    } else {
+                        lhs.checked_pow(rhs).into()
+                    }
+                }
                 Rule::rightShift => {
                     let shift: usize = match rhs.try_into() {
                         Ok(v) => v,
@@ -171,7 +203,12 @@ fn eval(expression: Pairs<Rule>) -> ParseResult {
                             return ParseResult::NAN;
                         }
                     };
-                    lhs.checked_shr(shift).into()
+                    if unchecked {
+                        let (result, _) = lhs.overflowing_shr(shift);
+                        result.into()
+                    } else {
+                        lhs.checked_shr(shift).into()
+                    }
                 }
                 Rule::leftShift => {
                     let shift: usize = match rhs.try_into() {
@@ -181,7 +218,12 @@ fn eval(expression: Pairs<Rule>) -> ParseResult {
                             return ParseResult::NAN;
                         }
                     };
-                    lhs.checked_shl(shift).into()
+                    if unchecked {
+                        let (result, _) = lhs.overflowing_shl(shift);
+                        result.into()
+                    } else {
+                        lhs.checked_shl(shift).into()
+                    }
                 }
                 Rule::modulus => lhs.checked_rem(rhs).into(),
                 _ => return ParseResult::NAN,
@@ -233,20 +275,19 @@ fn utility_fn_val(input: &str, value: U256) -> ParseResult {
         // evm utils
         "bytes32" => B256::from(value).to_string().into(),
         "address" | "addr" | "checksum" => u256_to_address(value).to_string().into(),
+        "sqrt" => value.root(2).into(),
         _ => ParseResult::NAN,
     }
 }
 
-fn utility_fn_args(input: &str, mut pairs: Pairs<Rule>) -> ParseResult {
+fn utility_fn_args(input: &str, mut pairs: Pairs<Rule>, unchecked: bool) -> ParseResult {
     let value = pairs.next().unwrap();
     let value_str = value.clone().as_str();
     let value_inner = value.into_inner();
-    log!("value: {}", value_str);
     // if value is a quote, value_inner will be empty
     if value_inner.len() == 0 {
         let value_str = trim_quotes(value_str);
         let args = trim_quotes(pairs.next().unwrap().as_str());
-        log!("string args:", &args);
         match input {
             "count" => U256::from(&value_str.len() - value_str.replace(&args, "").len()).into(),
             "left_pad" | "lpad" => match args.parse::<u8>() {
@@ -266,12 +307,12 @@ fn utility_fn_args(input: &str, mut pairs: Pairs<Rule>) -> ParseResult {
             _ => ParseResult::NAN,
         }
     } else {
-        match eval(value_inner) {
+        match eval(value_inner, unchecked) {
             ParseResult::Value(value) => {
                 let args = pairs.next().unwrap().as_str();
-                log!("uint args:", args);
                 match input {
                     "format_units" => format_units(value, args).ok().into(),
+                    "root" => value.root(args.parse().unwrap_or(2)).into(),
                     _ => ParseResult::NAN,
                 }
             }
