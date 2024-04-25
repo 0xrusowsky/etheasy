@@ -74,7 +74,7 @@ Support common EVM-related operations to work with addresses, hashing, base64 en
 
 ```rs
 address(0)                                // zero address (0x0000000000000000000000000000000000000000)
-checksum(0x1234abcd)                      // address checksum (0x0000000000000000000000000000000000000000)
+checksum(0xd8da6bf2..7aa96045)            // address checksum (0xd8dA6BF2..7aA96045)
 selector("transfer(address,uint256)")     // 4-bytes function selector (0xa9059cbb)
 keccak256("hello world")                  // keccak hash (0x47173285a8d7341e5e972fc677286384f802f8ef42a5ec5f03bbfa254cb01fad)
 b64_encode("hello world")                 // base64 encode ('aGVsbG8gd29ybGQ=')
@@ -83,12 +83,14 @@ b64_decode("aGVsbG8gd29ybGQ=")            // base64 decode ('hello world')
 
 ### 🕓 Miscellaneous
 
-Perform other operations, such as getting the current timestamp, or a specific unix timestamp.
+Perform other operations, such as getting the current timestamp, a specific unix timestamp, or formatting units.
 
 ```rs
 now()                                     // current timestamp
 unix(2023,12,31,23,59,59)                 // unix timestamp, comma separated (1704067199)
 unix(2023-12-31T23:59:59)                 // unix timestamp, YYYY-MM-DDTHH:mm:ss (1704067199)
+format_ether(1e18)                        // format with 18 decimal places ('1.000000000000000000')
+format_uints(123456, 4)                   // format with n decimal places ('12.3456')
 ```
 
 ## Development
