@@ -1,7 +1,34 @@
 use super::types::ParseResult;
+use crate::app::ScreenSize;
 use alloy_core::primitives::{Address, B256, U256};
 
-pub fn stringify(u: ParseResult, full: bool) -> (String, String) {
+pub fn format_size(str: String, full: bool, size: ScreenSize) -> String {
+    let chars = {
+        let (short, long) = match size {
+            ScreenSize::XS => (14, 30),
+            ScreenSize::SM => (18, 37),
+            ScreenSize::MD => (23, 49),
+            ScreenSize::LG => (33, 66),
+            ScreenSize::XL => (33, 66),
+            _ => (40, 66),
+        };
+        if full {
+            long
+        } else {
+            short
+        }
+    };
+
+    let mut s = "".to_string();
+    for (i, c) in str.chars().enumerate() {
+        if i % chars == 0 && i != 0 {
+            s.push_str("\n");
+        }
+        s.push(c);
+    }
+    s
+}
+pub fn stringify(u: ParseResult, full: bool, size: ScreenSize) -> (String, String) {
     match u {
         ParseResult::NAN => ("-".to_string(), "-".to_string()),
         ParseResult::Value(u) => {
@@ -15,10 +42,15 @@ pub fn stringify(u: ParseResult, full: bool) -> (String, String) {
                 if hex_formatted == "0x" {
                     (dec, "0x0".to_string())
                 } else {
+                    let dec = format_size(dec, false, size);
+                    let mut hex_formatted = format_size(hex_formatted, false, size);
+                    if count_chars(&dec, "\n") > count_chars(&hex_formatted, "\n") {
+                        hex_formatted = format!("{}\n-", hex_formatted);
+                    }
                     (dec, hex_formatted)
                 }
             } else {
-                ("-".to_string(), hex_str)
+                ("-".to_string(), format_size(hex_str, true, size))
             }
         }
         ParseResult::String(mut s) => {
@@ -89,4 +121,8 @@ pub fn right_pad(s: String, width: usize) -> String {
 pub fn remove_trailing_zeros(s: &str) -> String {
     let trimmed = s.trim_end_matches("0");
     if trimmed.is_empty() { "0" } else { trimmed }.to_string()
+}
+
+pub fn count_chars(s: &str, c: &str) -> usize {
+    s.len() - s.replace(c, "").len()
 }

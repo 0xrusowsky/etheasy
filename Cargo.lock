@@ -643,9 +643,11 @@ dependencies = [
  "chrono",
  "float-pretty-print",
  "gloo-console 0.3.0",
+ "gloo-timers 0.3.0",
  "lazy_static",
  "pest",
  "pest_derive",
+ "wasm-bindgen",
  "web-sys",
  "yew",
 ]
