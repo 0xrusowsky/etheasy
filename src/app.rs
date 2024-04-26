@@ -11,16 +11,17 @@ use gloo_console::log;
 use wasm_bindgen::prelude::*;
 use web_sys::HtmlTextAreaElement;
 use yew::prelude::*;
-use yew::Component;
+use yew::{html::Scope, Component};
 
-enum Msg {
+pub enum Msg {
     AddBlock,
+    FocusBlock(usize),
     Toggle,
     SwitchTheme(bool),
     CheckScreenSize,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ScreenSize {
     XS,  // dec: 18, hex: 18 | hex-full: 37
     SM,  // dec: 18, hex: 18 | hex-full: 37
@@ -35,11 +36,17 @@ pub fn app() -> Html {
     html! { <Frame /> }
 }
 
+#[derive(Properties, PartialEq)]
+pub struct Props {
+    pub on_view_change: Callback<()>,
+}
+
 struct Frame {
     dark_mode: bool,
     toggle: bool,
     size: ScreenSize,
     blocks: Vec<BlockComponent>,
+    focus: usize,
     focus_ref: NodeRef,
 }
 
@@ -50,6 +57,10 @@ impl Frame {
 
     fn is_dark_mode(&self) -> bool {
         self.dark_mode
+    }
+
+    fn screen_size(&self) -> ScreenSize {
+        self.size
     }
 }
 
@@ -91,6 +102,7 @@ impl Component for Frame {
             toggle: false,
             size: ScreenSize::MD,
             blocks: vec![BlockComponent::new()],
+            focus: 0,
             focus_ref: NodeRef::default(),
         };
 
@@ -110,15 +122,22 @@ impl Component for Frame {
         frame
     }
 
-    fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
+    fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             Msg::CheckScreenSize => {
                 self.check_screen_size();
                 // self.parse_input();
             }
             Msg::AddBlock => {
-                let focus_ref = NodeRef::default();
+                // self.blocks.insert(0, BlockComponent::new());
+                // self.focus = 0;
                 self.blocks.push(BlockComponent::new());
+                self.focus = self.last_block();
+                log!("Added new block");
+                log!(format!("Current blocks: {:#?}", &self.blocks));
+            }
+            Msg::FocusBlock(index) => {
+                self.focus = index;
             }
             Msg::Toggle => {
                 self.toggle = !self.is_toggled();
@@ -158,23 +177,24 @@ impl Component for Frame {
                     <div class="form-control text-gray-600 dark:text-gray-400 pt-10 pb-2 flex justify-end">
                         <label class="cursor-pointer label">
                         <span>{"Display full EVM words "}</span>
-                        <input type="checkbox" checked={self.is_toggled()} class="checkbox checkbox-accent accent-emerald-400 hover:scale-105" onclick={ctx.link().callback(|_| Msg::Toggle)}/>
+                        <input type="checkbox" checked={self.is_toggled()} class="checkbox checkbox-accent accent-emerald-400 hover:scale-105" onclick={ ctx.link().callback(|_| Msg::Toggle) }/>
                         </label>
                     </div>
                     // code playground
                     <div class="subpixel-antialiased text-gray-500 bg-gray-900 dark:bg-dark-code rounded-md shadow-2xl">
                     {
-                        for self.blocks.iter().enumerate().map(|(index, block)| {
+                        for self.blocks.iter().enumerate().map(|(index, _block)| {
                             html! {
-                                <BlockComponent key={index} on_enter={
-                                    // Only trigger AddBlock if Enter is pressed on the last block
-                                    if index == self.blocks.len() - 1 {
-                                        ctx.link().callback(move |_| Msg::AddBlock)
-                                    } else {
-                                        Callback::noop()
+                                <BlockComponent key={index} toggle={self.is_toggled()} size={self.screen_size()}
+                                    on_enter={
+                                        // Only trigger AddBlock if Enter is pressed on the last block
+                                        if index == self.last_block() {
+                                            ctx.link().callback(move |_| Msg::AddBlock)
+                                        } else {
+                                            ctx.link().callback(move |_| Msg::FocusBlock(index + 1))
+                                        }
                                     }
-                                }
-                                    textarea_ref={self.focus_ref.clone()}
+                                    textarea_ref={ if self.focus == index {self.focus_ref.clone()} else {NodeRef::default()} }
                                 />
                             }
                         })
@@ -188,7 +208,7 @@ impl Component for Frame {
         }
     }
 
-    fn rendered(&mut self, ctx: &Context<Self>, _first_render: bool) {
+    fn rendered(&mut self, _ctx: &Context<Self>, _first_render: bool) {
         if let Some(textarea) = self.focus_ref.cast::<HtmlTextAreaElement>() {
             let _ = textarea.focus();
         }
