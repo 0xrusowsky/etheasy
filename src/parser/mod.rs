@@ -289,7 +289,7 @@ fn utility_fn_args(input: &str, mut pairs: Pairs<Rule>, unchecked: bool) -> Pars
         let value_str = trim_quotes(value_str);
         let args = trim_quotes(pairs.next().unwrap().as_str());
         match input {
-            "count" => U256::from(&value_str.len() - value_str.replace(&args, "").len()).into(),
+            "count" => U256::from(count_chars(&value_str, &args)).into(),
             "left_pad" | "lpad" => match args.parse::<u8>() {
                 Ok(v) => utils::left_pad(value_str, v.into()).into(),
                 Err(e) => {

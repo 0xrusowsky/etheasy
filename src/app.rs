@@ -1,14 +1,34 @@
-use super::components::theme::ThemeComponent;
-use super::parser::{self, types::ParseResult};
+use crate::components::block::_BlockProps::textarea_ref;
+
+use super::components::{block::BlockComponent, theme::ThemeComponent};
+use super::parser::{
+    self,
+    types::ParseResult,
+    utils::{count_chars, format_size},
+};
 use alloy_core::primitives::U256;
+use gloo_console::log;
+use wasm_bindgen::prelude::*;
 use web_sys::HtmlTextAreaElement;
 use yew::prelude::*;
-use yew::Component;
+use yew::{html::Scope, Component};
 
-enum Msg {
-    AddText(String),
+pub enum Msg {
+    AddBlock,
+    FocusBlock,
     Toggle,
     SwitchTheme(bool),
+    CheckScreenSize,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum ScreenSize {
+    XS,  // dec: 18, hex: 18 | hex-full: 37
+    SM,  // dec: 18, hex: 18 | hex-full: 37
+    MD,  // dec: 23, hex: 23 | hex-full: 49
+    LG,  // dec: 33, hex: 33 | hex-full: -
+    XL,  // dec: 33, hex: 33 | hex-full: -
+    XXL, // dec: 33, hex: 33 | hex-full: -
 }
 
 #[function_component(App)]
@@ -16,13 +36,18 @@ pub fn app() -> Html {
     html! { <Frame /> }
 }
 
+#[derive(Properties, PartialEq)]
+pub struct Props {
+    pub on_view_change: Callback<()>,
+}
+
 struct Frame {
     dark_mode: bool,
     toggle: bool,
-    input: String,
-    dec: String,
-    hex: String,
-    total: U256,
+    size: ScreenSize,
+    blocks: usize,
+    focus: usize,
+    focus_ref: NodeRef,
 }
 
 impl Frame {
@@ -33,30 +58,37 @@ impl Frame {
     fn is_dark_mode(&self) -> bool {
         self.dark_mode
     }
+
+    fn screen_size(&self) -> ScreenSize {
+        self.size
+    }
 }
 
 impl Frame {
-    fn parse_input(&mut self) {
-        let mut output_dec = "".to_string();
-        let mut output_hex = "".to_string();
-        let mut total = U256::from(0);
-        let split = self.input.split('\n');
+    fn check_screen_size(&mut self) {
+        use web_sys::window;
 
-        for s in split {
-            let p = parser::parse(s);
-            match p {
-                ParseResult::Value(u) => total = total.checked_add(u).unwrap(),
-                _ => (),
-            };
+        let width = window().unwrap().inner_width().unwrap().as_f64().unwrap();
 
-            let (dec, hex) = parser::utils::stringify(p, self.is_toggled());
-            output_dec = format!("{}{}\n", output_dec, dec);
-            output_hex = format!("{}{}\n", output_hex, hex);
-        }
+        self.size = if width < 640_f64 {
+            ScreenSize::XS
+        } else if width < 768_f64 {
+            ScreenSize::SM
+        } else if width < 1024_f64 {
+            ScreenSize::MD
+        } else if width < 1280_f64 {
+            ScreenSize::LG
+        } else if width < 1536_f64 {
+            ScreenSize::XL
+        } else {
+            ScreenSize::XXL
+        };
 
-        self.total = total;
-        self.dec = output_dec;
-        self.hex = output_hex;
+        log!(format!("Current screen size: {:#?}", self.size));
+    }
+
+    fn last_block(&self) -> usize {
+        self.blocks - 1
     }
 }
 
@@ -64,26 +96,46 @@ impl Component for Frame {
     type Message = Msg;
     type Properties = ();
 
-    fn create(_ctx: &Context<Self>) -> Self {
-        Self {
+    fn create(ctx: &Context<Self>) -> Self {
+        let mut frame = Self {
             dark_mode: false,
             toggle: false,
-            input: "".to_string(),
-            dec: String::from(""),
-            hex: String::from(""),
-            total: U256::from(0),
-        }
+            size: ScreenSize::MD,
+            blocks: 1,
+            focus: 0,
+            focus_ref: NodeRef::default(),
+        };
+
+        frame.check_screen_size();
+
+        // Listen to resize events to adjust screen size
+        let link = ctx.link().clone();
+        let on_resize = Closure::wrap(Box::new(move |_event: Event| {
+            link.send_message(Msg::CheckScreenSize);
+        }) as Box<dyn FnMut(Event)>);
+        web_sys::window()
+            .expect("no global `window` exists")
+            .add_event_listener_with_callback("resize", on_resize.as_ref().unchecked_ref())
+            .expect("failed to listen for resize");
+        on_resize.forget();
+
+        frame
     }
 
     fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
-            Msg::AddText(input) => {
-                self.input = input;
-                self.parse_input();
+            Msg::CheckScreenSize => {
+                self.check_screen_size();
+            }
+            Msg::AddBlock => {
+                self.blocks += 1;
+                self.focus = self.last_block();
+            }
+            Msg::FocusBlock => {
+                self.focus = self.last_block();
             }
             Msg::Toggle => {
                 self.toggle = !self.is_toggled();
-                self.parse_input();
             }
             Msg::SwitchTheme(is) => {
                 self.dark_mode = is;
@@ -94,16 +146,6 @@ impl Component for Frame {
 
     fn view(&self, ctx: &Context<Self>) -> Html {
         let dark_mode = if self.is_dark_mode() { "dark" } else { "" };
-        let total = if self.dec.len() == 0 {
-            "".to_string()
-        } else {
-            format!("Total: {}", self.total)
-        };
-        let on_text_input = ctx.link().callback(move |e: InputEvent| {
-            let input: HtmlTextAreaElement = e.target_unchecked_into::<HtmlTextAreaElement>();
-            Msg::AddText(input.value())
-        });
-
         html! {
             <div class={dark_mode}>
             <div class="min-h-screen px-3 bg-gray-100 dark:bg-dark-primary md:px-0">
@@ -125,66 +167,47 @@ impl Component for Frame {
                 </div>
 
                 <div class="font-mono text-xs md:text-sm">
-                    // bytes32 checkbox
+                    // full evm word (bytes32) checkbox
                     <div class="form-control text-gray-600 dark:text-gray-400 pt-10 pb-2 flex justify-end">
                         <label class="cursor-pointer label">
                         <span>{"Display full EVM words "}</span>
-                        <input type="checkbox" checked={self.is_toggled()} class="checkbox checkbox-accent accent-emerald-400 hover:scale-105" onclick={ctx.link().callback(|_| Msg::Toggle)}/>
+                        <input type="checkbox" checked={self.is_toggled()} class="checkbox checkbox-accent accent-emerald-400 hover:scale-105" onclick={ ctx.link().callback(|_| Msg::Toggle) }/>
                         </label>
                     </div>
                     // code playground
                     <div class="subpixel-antialiased text-gray-500 bg-gray-900 dark:bg-dark-code rounded-md shadow-2xl">
-                        <div class="grid h-full grid-cols-3 p-4">
-                            <div class="col-span-1 pt-0 text-gray-400 pr-2">
-                                <p class="mt-0 pt-0">{ "input:" }</p>
-                                <textarea oninput={on_text_input}
-                                    class="w-full h-full min-h-[100px] font-mono text-gray-50 placeholder-gray-600 bg-transparent border-0 appearance-none resize-none focus:outline-none focus:ring-0 focus:border-0 active:border-0 pb-2"
-                                        data-gramm="false"
-                                        placeholder="\n1 ether to gwei\nnow - unix(2023,12,31)\naddress(0)\n0x1234 + 5678">
-                                </textarea>
-                            </div>
-                            if self.is_toggled() {
-                                <div class="col-span-2 overflow-x-auto text-right text-emerald-400 pl-2">
-                                    <p class="pt-0 text-gray-400">{ "hex: " }</p>
-                                    <div> {
-                                        for self.hex.split('\n').into_iter().map(|v| {
-                                            html!{
-                                                <div class="w-full ">{ v }</div>
-                                            } })
+                    {
+                        for (0..self.blocks).rev().map(|index| {
+                            html! {
+                                <BlockComponent key={index} toggle={self.is_toggled()} size={self.screen_size()}
+                                    on_enter={
+                                        // only trigger AddBlock if Enter is pressed on the last block
+                                        if index == self.last_block() {
+                                            ctx.link().callback(move |_| Msg::AddBlock)
+
                                         }
-                                    </div>
-                                    <div class="pt-5 text-gray-400">{ total }</div>
-                                </div>
-                            } else {
-                                    <div class="col-span-1 overflow-x-auto text-right text-amber-300 pl-2">
-                                        <p class="pt-0 text-gray-400">{ "dec: " }</p>
-                                        <div> {
-                                            for self.dec.split('\n').into_iter().map(|v| {
-                                                html!{
-                                                    <div class="w-full ">{ v }</div>
-                                                } })
-                                            }
-                                        </div>
-                                    </div>
-                                <div class="col-span-1 overflow-x-auto text-right text-emerald-400 pl-2">
-                                    <p class="pt-0 text-gray-400">{ "hex: " }</p>
-                                    <div> {
-                                        for self.hex.split('\n').into_iter().map(|v| {
-                                            html!{
-                                                <div class="w-full ">{ v }</div>
-                                            } })
-                                        }
-                                </div>
-                                <div class="pt-5 text-gray-400">{ total }</div>
-                                </div>
+                                        // otherwise, move focus back to last block
+                                        else { ctx.link().callback(move |_| Msg::FocusBlock) }
+                                    }
+                                    textarea_ref={
+                                        if self.focus == index {self.focus_ref.clone()} else {NodeRef::default()}
+                                    }
+                                />
                             }
-                        </div>
+                        })
+                    }
                     </div>
                 </div>
             </div>
             </div>
             </div>
             </div>
+        }
+    }
+
+    fn rendered(&mut self, _ctx: &Context<Self>, _first_render: bool) {
+        if let Some(textarea) = self.focus_ref.cast::<HtmlTextAreaElement>() {
+            let _ = textarea.focus();
         }
     }
 }
