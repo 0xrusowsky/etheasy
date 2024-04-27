@@ -94,14 +94,14 @@ impl Component for BlockComponent {
         });
         let on_key_down = ctx.link().callback(Msg::CheckForEnter);
         let min_height = if self.input.len() == 0 {
-            "min-h-[100px]"
+            "min-h-[110px]"
         } else {
-            "min-h-[10px] pb-0"
+            "focus:min-h-[110px]"
         };
         html! {
-            <div class="grid h-full grid-cols-3 p-4 border-b-2 border-gray-100/25 dark:border-b-4 dark:border-dark-primary">
-                <div class="peer/input col-span-1 pt-0 text-gray-400 pr-2">
-                    <p class="mt-0 pt-0">{ "input:" }</p>
+            <div class="grid h-full grid-cols-3 p-4 pb-0 border-b-2 border-gray-100/25 dark:border-b-4 dark:border-dark-primary">
+                <div class="peer/input col-span-1 pt-0 pr-2">
+                    <p class="mt-0 text-gray-400">{ "input:" }</p>
                     <textarea oninput={on_text_input} onkeydown={on_key_down} ref={ctx.props().textarea_ref.clone()}
                         class={
                             format!("{} {}",
@@ -148,5 +148,10 @@ impl Component for BlockComponent {
             }
             </div>
         }
+    }
+
+    fn changed(&mut self, ctx: &Context<Self>, _old_props: &Self::Properties) -> bool {
+        self.parse_input(ctx.props().toggle, ctx.props().size);
+        true
     }
 }

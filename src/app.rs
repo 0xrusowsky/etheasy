@@ -15,7 +15,7 @@ use yew::{html::Scope, Component};
 
 pub enum Msg {
     AddBlock,
-    FocusBlock(usize),
+    FocusBlock,
     Toggle,
     SwitchTheme(bool),
     CheckScreenSize,
@@ -45,7 +45,7 @@ struct Frame {
     dark_mode: bool,
     toggle: bool,
     size: ScreenSize,
-    blocks: Vec<BlockComponent>,
+    blocks: usize,
     focus: usize,
     focus_ref: NodeRef,
 }
@@ -88,7 +88,7 @@ impl Frame {
     }
 
     fn last_block(&self) -> usize {
-        self.blocks.len() - 1
+        self.blocks - 1
     }
 }
 
@@ -101,7 +101,7 @@ impl Component for Frame {
             dark_mode: false,
             toggle: false,
             size: ScreenSize::MD,
-            blocks: vec![BlockComponent::new()],
+            blocks: 1,
             focus: 0,
             focus_ref: NodeRef::default(),
         };
@@ -126,22 +126,16 @@ impl Component for Frame {
         match msg {
             Msg::CheckScreenSize => {
                 self.check_screen_size();
-                // self.parse_input();
             }
             Msg::AddBlock => {
-                // self.blocks.insert(0, BlockComponent::new());
-                // self.focus = 0;
-                self.blocks.push(BlockComponent::new());
+                self.blocks += 1;
                 self.focus = self.last_block();
-                log!("Added new block");
-                log!(format!("Current blocks: {:#?}", &self.blocks));
             }
-            Msg::FocusBlock(index) => {
-                self.focus = index;
+            Msg::FocusBlock => {
+                self.focus = self.last_block();
             }
             Msg::Toggle => {
                 self.toggle = !self.is_toggled();
-                // self.parse_input();
             }
             Msg::SwitchTheme(is) => {
                 self.dark_mode = is;
@@ -173,7 +167,7 @@ impl Component for Frame {
                 </div>
 
                 <div class="font-mono text-xs md:text-sm">
-                    // bytes32 checkbox
+                    // full evm word (bytes32) checkbox
                     <div class="form-control text-gray-600 dark:text-gray-400 pt-10 pb-2 flex justify-end">
                         <label class="cursor-pointer label">
                         <span>{"Display full EVM words "}</span>
@@ -183,15 +177,17 @@ impl Component for Frame {
                     // code playground
                     <div class="subpixel-antialiased text-gray-500 bg-gray-900 dark:bg-dark-code rounded-md shadow-2xl">
                     {
-                        for self.blocks.iter().enumerate().map(|(index, _block)| {
+                        for (0..self.blocks).rev().map(|index| {
                             html! {
                                 <BlockComponent key={index} toggle={self.is_toggled()} size={self.screen_size()}
                                     on_enter={
-                                        // Only trigger AddBlock if Enter is pressed on the last block
+                                        // only trigger AddBlock if Enter is pressed on the last block
                                         if index == self.last_block() {
                                             ctx.link().callback(move |_| Msg::AddBlock)
-                                        } else {
-                                            ctx.link().callback(move |_| Msg::FocusBlock(index + 1))
+                                        }
+                                        // otherwise, move focus
+                                        else {
+                                            ctx.link().callback(move |_| Msg::FocusBlock)
                                         }
                                     }
                                     textarea_ref={ if self.focus == index {self.focus_ref.clone()} else {NodeRef::default()} }
