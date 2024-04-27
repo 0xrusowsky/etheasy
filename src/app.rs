@@ -1,34 +1,28 @@
-use crate::components::block::_BlockProps::textarea_ref;
-
 use super::components::{block::BlockComponent, theme::ThemeComponent};
-use super::parser::{
-    self,
-    types::ParseResult,
-    utils::{count_chars, format_size},
-};
-use alloy_core::primitives::U256;
 use gloo_console::log;
 use wasm_bindgen::prelude::*;
-use web_sys::HtmlTextAreaElement;
+use web_sys::{window, HtmlTextAreaElement};
 use yew::prelude::*;
-use yew::{html::Scope, Component};
+use yew::Component;
 
 pub enum Msg {
-    AddBlock,
-    FocusBlock,
+    // app config
     Toggle,
     SwitchTheme(bool),
     CheckScreenSize,
+    // block config
+    AddBlock,
+    FocusBlock,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ScreenSize {
-    XS,  // dec: 18, hex: 18 | hex-full: 37
-    SM,  // dec: 18, hex: 18 | hex-full: 37
-    MD,  // dec: 23, hex: 23 | hex-full: 49
-    LG,  // dec: 33, hex: 33 | hex-full: -
-    XL,  // dec: 33, hex: 33 | hex-full: -
-    XXL, // dec: 33, hex: 33 | hex-full: -
+    XS,  // dec-hex: 14 | hex-full: 30
+    SM,  // dec-hex: 18 | hex-full: 37
+    MD,  // dec-hex: 23 | hex-full: 49
+    LG,  // dec-hex: 33 | hex-full: 66
+    XL,  // dec-hex: 33 | hex-full: 66
+    XXL, // dec-hex: 40 | hex-full: 66
 }
 
 #[function_component(App)]
@@ -66,8 +60,6 @@ impl Frame {
 
 impl Frame {
     fn check_screen_size(&mut self) {
-        use web_sys::window;
-
         let width = window().unwrap().inner_width().unwrap().as_f64().unwrap();
 
         self.size = if width < 640_f64 {
@@ -108,12 +100,11 @@ impl Component for Frame {
 
         frame.check_screen_size();
 
-        // Listen to resize events to adjust screen size
         let link = ctx.link().clone();
         let on_resize = Closure::wrap(Box::new(move |_event: Event| {
             link.send_message(Msg::CheckScreenSize);
         }) as Box<dyn FnMut(Event)>);
-        web_sys::window()
+        window()
             .expect("no global `window` exists")
             .add_event_listener_with_callback("resize", on_resize.as_ref().unchecked_ref())
             .expect("failed to listen for resize");
@@ -145,9 +136,8 @@ impl Component for Frame {
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
-        let dark_mode = if self.is_dark_mode() { "dark" } else { "" };
         html! {
-            <div class={dark_mode}>
+            <div class={if self.is_dark_mode() { "dark" } else { "" }}>
             <div class="min-h-screen px-3 bg-gray-100 dark:bg-dark-primary md:px-0">
             <div class="flex flex-col items-center justify-center w-full h-full space-y-8">
             <div class="w-full max-w-md md:max-w-2xl lg:max-w-4xl 2xl:max-w-6xl 4xl:max-w-8xl">
@@ -179,7 +169,8 @@ impl Component for Frame {
                     {
                         for (0..self.blocks).rev().map(|index| {
                             html! {
-                                <BlockComponent key={index} toggle={self.is_toggled()} size={self.screen_size()}
+                                <BlockComponent key={index}
+                                    block_count={self.last_block()} block_id={index} toggle={self.is_toggled()} size={self.screen_size()}
                                     on_enter={
                                         // only trigger AddBlock if Enter is pressed on the last block
                                         if index == self.last_block() {
