@@ -641,9 +641,7 @@ dependencies = [
  "alloy-core",
  "base64",
  "chrono",
- "float-pretty-print",
  "gloo-console 0.3.0",
- "gloo-timers 0.3.0",
  "lazy_static",
  "pest",
  "pest_derive",
@@ -690,12 +688,6 @@ dependencies = [
  "rustc-hex",
  "static_assertions",
 ]
-
-[[package]]
-name = "float-pretty-print"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cae1cdc50a756244008a19d313827537e5e18d55f76779e8d5f9aa00769ca231"
 
 [[package]]
 name = "fnv"
