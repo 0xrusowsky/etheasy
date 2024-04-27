@@ -1,3 +1,5 @@
+use std::cmp::max;
+
 use super::super::{
     app::ScreenSize,
     parser::{
@@ -7,12 +9,12 @@ use super::super::{
     },
 };
 use gloo_console::log;
-use web_sys::HtmlTextAreaElement;
+use web_sys::{Element, HtmlTextAreaElement};
 use yew::prelude::*;
 use yew::Component;
 
 pub enum Msg {
-    InputChanged(String),
+    InputChanged(TextAreaInput),
     CheckForEnter(KeyboardEvent),
 }
 
@@ -25,10 +27,17 @@ pub struct BlockProps {
     pub size: ScreenSize,
 }
 
+#[derive(Debug, PartialEq)]
+pub struct TextAreaInput {
+    pub value: String,
+    pub height: i32,
+}
+
 #[derive(Debug)]
 pub struct BlockComponent {
     // block state
-    input: String,
+    input: TextAreaInput,
+    min_height: i32,
     dec: String,
     hex: String,
 }
@@ -36,7 +45,11 @@ pub struct BlockComponent {
 impl BlockComponent {
     pub fn new() -> Self {
         Self {
-            input: "".to_string(),
+            input: TextAreaInput {
+                value: "".to_string(),
+                height: 0,
+            },
+            min_height: 110,
             dec: String::from(""),
             hex: String::from(""),
         }
@@ -45,8 +58,7 @@ impl BlockComponent {
     fn parse_input(&mut self, full: bool, size: ScreenSize) {
         let mut output_dec = "".to_string();
         let mut output_hex = "".to_string();
-        let split = self.input.split('\n');
-        log!("toggle", full, format!("size{:#?}", size));
+        let split = self.input.value.split('\n');
 
         for s in split {
             let p = parser::parse(s);
@@ -55,6 +67,33 @@ impl BlockComponent {
             output_hex = format!("{}{}\n", output_hex, hex);
         }
 
+        let output_lb: i32 = max(
+            count_chars(&output_dec, "\n"),
+            count_chars(&output_hex, "\n"),
+        )
+        .try_into()
+        .unwrap();
+
+        if self.input.height > 136 {
+            match size {
+                ScreenSize::XS => {
+                    let lb = self.input.height / 16;
+                    self.min_height = max(110, lb * 16);
+                }
+                _ => {
+                    // log!(
+                    //     "self.input.height",
+                    //     self.input.height,
+                    //     "min_height",
+                    //     self.input.height - 60
+                    // );
+                    // let adj = (self.input.height - 136) / 20 - 1;
+                    // log!("adj", adj, "min_height", self.input.height - adj * 20);
+                    // self.min_height = self.input.height - adj;
+                    self.min_height = self.input.height;
+                }
+            }
+        }
         self.dec = output_dec;
         self.hex = output_hex;
     }
@@ -73,11 +112,30 @@ impl Component for BlockComponent {
             Msg::InputChanged(input) => {
                 self.input = input;
                 self.parse_input(ctx.props().toggle, ctx.props().size);
+                // Manually resize textarea to avoid scrollbars
+                if let Some(textarea) = ctx.props().textarea_ref.cast::<HtmlTextAreaElement>() {
+                    match textarea.remove_attribute("style") {
+                        Ok(_) => (),
+                        Err(_) => log!("Failed to remove style attribute"),
+                    }
+                    log!(
+                        "scroll_height",
+                        textarea.scroll_height(),
+                        "client_height",
+                        textarea.client_height()
+                    );
+                    if textarea.scroll_height() > textarea.client_height() {
+                        textarea
+                            .set_attribute("style", &format!("height: {}px", self.min_height))
+                            .expect("Failed to set style");
+                    }
+                    log!("textarea.style", textarea.get_attribute("style"));
+                }
                 true
             }
             Msg::CheckForEnter(e) => {
-                let has_content =
-                    self.input.len() > 0 && self.input.len() != count_chars(&self.input, "\n");
+                let has_content = self.input.value.len() > 0
+                    && self.input.value.len() != count_chars(&self.input.value, "\n");
                 if e.key() == "Enter" && !e.shift_key() && has_content {
                     e.prevent_default();
                     ctx.props().on_enter.emit(());
@@ -90,25 +148,20 @@ impl Component for BlockComponent {
     fn view(&self, ctx: &Context<Self>) -> Html {
         let on_text_input = ctx.link().callback(move |e: InputEvent| {
             let input: HtmlTextAreaElement = e.target_unchecked_into::<HtmlTextAreaElement>();
-            Msg::InputChanged(input.value())
+            Msg::InputChanged(TextAreaInput {
+                value: input.value(),
+                height: input.scroll_height(),
+            })
         });
         let on_key_down = ctx.link().callback(Msg::CheckForEnter);
-        let min_height = if self.input.len() == 0 {
-            "min-h-[110px]"
-        } else {
-            "focus:min-h-[110px]"
-        };
         html! {
             <div class="grid h-full grid-cols-3 p-4 pb-0 border-b-2 border-gray-100/25 dark:border-b-4 dark:border-dark-primary">
                 <div class="peer/input col-span-1 pt-0 pr-2">
                     <p class="mt-0 text-gray-400">{ "input:" }</p>
-                    <textarea oninput={on_text_input} onkeydown={on_key_down} ref={ctx.props().textarea_ref.clone()}
-                        class={
-                            format!("{} {}",
-                                "w-full h-full font-mono focus-within:text-gray-50 placeholder-gray-600 bg-transparent border-0 appearance-none resize-none focus:outline-none focus:ring-0 focus:border-0 active:border-0",
-                                min_height
-                            )
-                        }
+                    <textarea ref={ctx.props().textarea_ref.clone()}
+                        oninput={on_text_input}
+                        onkeydown={on_key_down}
+                        class="w-full h-full focus:min-h-[110px] font-mono focus-within:text-gray-50 placeholder-gray-600 bg-transparent border-0 appearance-none resize-none focus:outline-none focus:ring-0 focus:border-0 active:border-0"
                         data-gramm="false"
                         placeholder="\n1 ether to gwei\nnow - unix(2023,12,31)\naddress(0)\n0x1234 + 5678">
                     </textarea>

@@ -185,12 +185,12 @@ impl Component for Frame {
                                         if index == self.last_block() {
                                             ctx.link().callback(move |_| Msg::AddBlock)
                                         }
-                                        // otherwise, move focus
-                                        else {
-                                            ctx.link().callback(move |_| Msg::FocusBlock)
-                                        }
+                                        // otherwise, move focus back to last block
+                                        else { ctx.link().callback(move |_| Msg::FocusBlock) }
                                     }
-                                    textarea_ref={ if self.focus == index {self.focus_ref.clone()} else {NodeRef::default()} }
+                                    textarea_ref={
+                                        if self.focus == index {self.focus_ref.clone()} else {NodeRef::default()}
+                                    }
                                 />
                             }
                         })
