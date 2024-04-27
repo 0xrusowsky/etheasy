@@ -184,6 +184,7 @@ impl Component for Frame {
                                         // only trigger AddBlock if Enter is pressed on the last block
                                         if index == self.last_block() {
                                             ctx.link().callback(move |_| Msg::AddBlock)
+
                                         }
                                         // otherwise, move focus back to last block
                                         else { ctx.link().callback(move |_| Msg::FocusBlock) }
