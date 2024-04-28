@@ -1,4 +1,4 @@
-use crate::app::ScreenSize;
+use crate::components::frame::ScreenSize;
 use crate::parser::{self, utils};
 
 use gloo_console::log;
