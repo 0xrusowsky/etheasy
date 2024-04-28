@@ -1,9 +1,9 @@
-use super::components::{block::BlockComponent, theme::ThemeComponent};
+use crate::components::{block::BlockComponent, theme::ThemeComponent};
+
 use gloo_console::log;
 use wasm_bindgen::prelude::*;
 use web_sys::{window, HtmlTextAreaElement};
-use yew::prelude::*;
-use yew::Component;
+use yew::{prelude::*, Component};
 
 pub enum Msg {
     // app config
