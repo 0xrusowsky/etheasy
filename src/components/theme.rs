@@ -19,7 +19,7 @@ impl Component for ThemeComponent {
     type Properties = ThemeComponentProps;
 
     fn create(_ctx: &Context<Self>) -> Self {
-        Self { dark_mode: false }
+        Self { dark_mode: true }
     }
 
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {

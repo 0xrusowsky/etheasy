@@ -1,5 +1,5 @@
 use super::types::ParseResult;
-use crate::app::ScreenSize;
+use crate::components::frame::ScreenSize;
 use alloy_core::primitives::{Address, B256, U256};
 
 pub fn format_size(str: String, full: bool, size: ScreenSize) -> String {
