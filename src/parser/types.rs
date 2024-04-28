@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use alloy_core::primitives::U256;
 
 pub enum ParseResult {

@@ -1,6 +1,5 @@
 use super::utils::*;
 use alloy_core::primitives::U256;
-use gloo_console::log;
 use std::io::Error;
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]

@@ -1,5 +1,4 @@
-use yew::prelude::*;
-use yew::Component;
+use yew::{prelude::*, Component};
 
 pub enum Switch {
     LightMode,

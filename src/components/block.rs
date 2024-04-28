@@ -1,11 +1,9 @@
-use super::super::{
-    app::ScreenSize,
-    parser::{self, utils},
-};
+use crate::app::ScreenSize;
+use crate::parser::{self, utils};
+
 use gloo_console::log;
 use web_sys::HtmlTextAreaElement;
-use yew::prelude::*;
-use yew::Component;
+use yew::{prelude::*, Component};
 
 pub enum Msg {
     Blur,

@@ -1,23 +1,24 @@
 #![allow(deprecated)]
+mod convert_chart;
+pub mod types;
+pub mod utils;
+use convert_chart::{convert, UnitType};
+use types::ParseResult;
+use utils::*;
+
 use alloy_core::primitives::{
     utils::{format_ether, format_units, keccak256},
-    Address, Bytes, B256, U256, U64,
+    B256, U256,
 };
 use base64::{engine::general_purpose::URL_SAFE, Engine as _};
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime, TimeZone, Utc};
 use gloo_console::log;
-use pest::iterators::{Pair, Pairs};
-use pest::prec_climber::*;
-use pest::Parser;
+use pest::{
+    iterators::{Pair, Pairs},
+    prec_climber::*,
+    Parser,
+};
 use pest_derive::Parser;
-
-mod convert_chart;
-use convert_chart::{convert, UnitType};
-
-pub mod types;
-pub mod utils;
-use types::ParseResult;
-use utils::*;
 
 #[derive(Parser)]
 #[grammar = "parser/grammar.pest"]
@@ -235,8 +236,6 @@ fn eval(expression: Pairs<Rule>, unchecked: bool) -> ParseResult {
 fn utility_fn_str(input: &str, value: &str) -> ParseResult {
     let value = trim_quotes(value);
     match input {
-        // unix timestamp
-        "unix" => U256::from(parse_datetime(value)).into(),
         // evm utils
         "bytes32" => match parse_evm_type(value) {
             Some(value) => value.parse::<B256>().unwrap_or_default().to_string().into(),
@@ -251,8 +250,6 @@ fn utility_fn_str(input: &str, value: &str) -> ParseResult {
             .to_string()
             .into(),
         "guess_selector" | "fn_from_selector" => "to do".into(),
-        "right_pad" | "pad_right" | "rpad" => "to do".into(),
-        "left_pad" | "pad_left" | "lpad" => "to do".into(),
         // string manipulation
         "len" | "chars" => U256::from(value.len()).into(),
         "lowercase" | "lower" => value.to_lowercase().into(),
@@ -265,17 +262,21 @@ fn utility_fn_str(input: &str, value: &str) -> ParseResult {
                 ParseResult::NAN
             }
         },
+        // miscelaneous
+        "unix" => U256::from(parse_unix(value)).into(),
         _ => ParseResult::NAN,
     }
 }
 
 fn utility_fn_val(input: &str, value: U256) -> ParseResult {
     match input {
-        "format_units" | "format_ether" => format_ether(value).into(),
         // evm utils
         "bytes32" => B256::from(value).to_string().into(),
         "address" | "addr" | "checksum" => u256_to_address(value).to_string().into(),
         "sqrt" => value.root(2).into(),
+        // miscelaneous
+        "format_units" | "format_ether" => format_ether(value).into(),
+        "unix" => format_unix(value, None),
         _ => ParseResult::NAN,
     }
 }
@@ -311,8 +312,9 @@ fn utility_fn_args(input: &str, mut pairs: Pairs<Rule>, unchecked: bool) -> Pars
             ParseResult::Value(value) => {
                 let args = pairs.next().unwrap().as_str();
                 match input {
-                    "format_units" => format_units(value, args).ok().into(),
                     "root" => value.root(args.parse().unwrap_or(2)).into(),
+                    "format_units" => format_units(value, args).ok().into(),
+                    "unix" => format_unix(value, Some(args.to_string())),
                     _ => ParseResult::NAN,
                 }
             }
@@ -348,7 +350,7 @@ fn parse_evm_type(input: String) -> Option<String> {
     None
 }
 
-fn parse_datetime(input: String) -> i64 {
+fn parse_unix(input: String) -> i64 {
     let input = input.replace(&['-', '/', ':', 'T'][..], ",");
     let parts: Vec<&str> = input.split(',').collect();
     let mut date_parts = [0 as u32; 6];
@@ -364,4 +366,16 @@ fn parse_datetime(input: String) -> i64 {
     );
 
     Utc.from_utc_datetime(&dt).timestamp()
+}
+
+fn format_unix(u: U256, s_format: Option<String>) -> ParseResult {
+    let unix_timestamp: i64 = match u.to_string().parse() {
+        Ok(v) => v,
+        Err(_) => return ParseResult::NAN,
+    };
+    let datetime = NaiveDateTime::from_timestamp(unix_timestamp, 0);
+    match s_format {
+        Some(format) => ParseResult::String(datetime.format(&format).to_string()),
+        None => ParseResult::String(datetime.format("%Y-%m-%d %H:%M:%S").to_string()),
+    }
 }
