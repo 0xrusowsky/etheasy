@@ -4,7 +4,7 @@
 
 The project is built with the following stack:
 
-- **Rust:** Blazzingly fast programming languange.
+- **Rust:** Blazingly fast programming language.
 - **Pest:** General purpose parser, for Rust.
 - **Alloy:** Library with core types for Rust-Ethereum.
 - **Trunk:** WASM web application bundler, for Rust.
@@ -26,11 +26,11 @@ max_uint                                  // maximum U256 value (0xf...f)
 
 ### 🔢 Mathematical Operations
 
-Offers addition, subtraction, multiplication, division, modulo, power, and bit-shiftting, using `U256` to precisely handle large numbers.
+Offers addition, subtraction, multiplication, division, modulo, power, and bit-shifting, using `U256` to precisely handle large numbers.
 
 ```rs
 0x11 + 0xAA                               // addition (187)
-0b11 - 0b10                               // substraction (1)
+0b11 - 0b10                               // subtraction (1)
 2 * 3                                     // multiplication (6)
 10 / 3                                    // division (3)
 10 % 3                                    // modulo (1)
@@ -45,7 +45,7 @@ By default, all operations are checked for over/underflows. However, you can dis
 
 ```rs
 unchecked(0 - 1)                          // unchecked operation (max_uint)
-unchecked(format_units(2**256, 4))        // composed unchecked operation ('0.0000') ))
+unchecked(format_units(2**256, 4))        // composed unchecked operation ('0.0000')
 ```
 
 ### 🛠️ EVM-Related Operations
@@ -68,7 +68,7 @@ Simplify common string operations, including case conversions or character count
 ```rs
 upper("hello")                            // upper case ('HELLO')
 lower("WORLD")                            // lower case ('world')
-count("foo bar")                          // count all character (7)
+len("foo bar")                            // count all characters (7)
 count("foo bar", "o")                     // count input character (2)
 ```
 
@@ -86,9 +86,13 @@ Effortlessly convert between different units relevant to the EVM, such as gas or
 Perform other operations, such as getting the current timestamp, a specific unix timestamp, or formatting units.
 
 ```rs
-now()                                     // current timestamp
+now                                       // current timestamp
 unix(2023,12,31,23,59,59)                 // unix timestamp, comma separated (1704067199)
 unix(2023-12-31T23:59:59)                 // unix timestamp, YYYY-MM-DDTHH:mm:ss (1704067199)
+unix(1704067199)                          // formatted timestamp from unix, ('2023-12-31 23:59:59')
+unix(1704067199, "%Y-%m-%dT%H:%M:%S")     // custom formatted timestamp from unix, ('2023-12-31T23:59:59')
+                                          // ref: https://docs.rs/chrono/latest/chrono/format/strftime/index.html
+
 format_ether(1e18)                        // format with 18 decimal places ('1.000000000000000000')
 format_uints(123456, 4)                   // format with n decimal places ('12.3456')
 ```
@@ -126,7 +130,7 @@ Any contribution is welcome! Feel free to open a PR.
 
 - [qubit](https://github.com/abhimanyu003/qubit/tree/main) a calculator built with the same stack.
 - [dethtools](https://github.com/dethcrypto/dethtools) a flexible toolset for Ethereum developers.
-- [swiss-knife](https://github.com/swiss-knife-xyz/swiss-knife) a flexible †toolset for Ethereum developers.
+- [swiss-knife](https://github.com/swiss-knife-xyz/swiss-knife) a flexible toolset for Ethereum developers.
 
 ## License
 
