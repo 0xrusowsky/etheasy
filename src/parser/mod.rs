@@ -374,8 +374,9 @@ fn format_unix(u: U256, s_format: Option<String>) -> ParseResult {
         Err(_) => return ParseResult::NAN,
     };
     let datetime = NaiveDateTime::from_timestamp(unix_timestamp, 0);
-    match s_format {
-        Some(format) => ParseResult::String(datetime.format(&format).to_string()),
-        None => ParseResult::String(datetime.format("%Y-%m-%d %H:%M:%S").to_string()),
-    }
+    let output = match s_format {
+        Some(format) => datetime.format(&format).to_string(),
+        None => datetime.format("%Y-%m-%d %H:%M:%S").to_string(),
+    };
+    ParseResult::String(trim_quotes(&output))
 }
