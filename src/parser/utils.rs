@@ -126,3 +126,7 @@ pub fn remove_trailing_zeros(s: &str) -> String {
 pub fn count_chars(s: &str, c: &str) -> usize {
     s.len() - s.replace(c, "").len()
 }
+
+pub fn vectorize_str(input: &str) -> String {
+    format!("({})", input.trim_matches(|c| c == '[' || c == ']'))
+}

@@ -54,14 +54,12 @@ impl BlockComponent {
     fn parse_input(&mut self, full: bool, size: ScreenSize) {
         let mut output_dec = "".to_string();
         let mut output_hex = "".to_string();
-        let split = self.input.value.split('\n');
+        let s = self.input.value.replace("\n", "");
 
-        for s in split {
-            let p = parser::parse(s);
-            let (dec, hex) = utils::stringify(p, full, size);
-            output_dec = format!("{}{}\n", output_dec, dec);
-            output_hex = format!("{}{}\n", output_hex, hex);
-        }
+        let p = parser::parse(&s);
+        let (dec, hex) = utils::stringify(p, full, size);
+        output_dec = format!("{}{}\n", output_dec, dec);
+        output_hex = format!("{}{}\n", output_hex, hex);
 
         if self.input.height > 136 {
             self.min_height = self.input.height;

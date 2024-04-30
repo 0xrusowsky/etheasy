@@ -3,13 +3,14 @@ mod convert_chart;
 pub mod types;
 pub mod utils;
 use convert_chart::{convert, UnitType};
-use types::ParseResult;
+use types::*;
 use utils::*;
 
 use alloy_core::primitives::{
     utils::{format_ether, format_units, keccak256},
     B256, U256,
 };
+use alloy_dyn_abi::{DynSolType, DynSolValue};
 use base64::{engine::general_purpose::URL_SAFE, Engine as _};
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime, TimeZone, Utc};
 use gloo_console::log;
@@ -154,6 +155,7 @@ fn eval(expression: Pairs<Rule>, unchecked: bool) -> ParseResult {
                 U256::from_str_radix(bin, 2).ok().into()
             }
             Rule::quote => trim_quotes(pair.as_str()).into(),
+            Rule::array => trim_quotes(pair.as_str()).into(),
             Rule::expr => eval(pair.into_inner(), unchecked),
             _ => ParseResult::NAN,
         },
@@ -304,6 +306,13 @@ fn utility_fn_args(input: &str, mut pairs: Pairs<Rule>, unchecked: bool) -> Pars
                     log!("Error parsing right_pad args", e.to_string());
                     ParseResult::NAN
                 }
+            },
+            "abi_decode" => match abi_parse_argument(&value_str, &args) {
+                Ok(decoded) => match serde_json::to_string_pretty(&decoded) {
+                    Ok(json_string) => trim_quotes(&json_string).into(),
+                    Err(_) => ParseResult::NAN,
+                }
+                Err(_) => ParseResult::NAN,
             },
             _ => ParseResult::NAN,
         }
