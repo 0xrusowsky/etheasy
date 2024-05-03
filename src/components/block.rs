@@ -1,7 +1,8 @@
-use crate::components::frame::ScreenSize;
+use crate::components::{frame::ScreenSize, json::JsonComponent};
 use crate::parser::{self, utils};
 
 use gloo_console::log;
+use pest::ParseResult;
 use web_sys::HtmlTextAreaElement;
 use yew::{prelude::*, Component};
 
@@ -35,6 +36,7 @@ pub struct BlockComponent {
     min_height: i32,
     dec: String,
     hex: String,
+    json: Option<serde_json::Value>,
 }
 
 impl BlockComponent {
@@ -48,6 +50,7 @@ impl BlockComponent {
             min_height: 110,
             dec: String::from(""),
             hex: String::from(""),
+            json: None,
         }
     }
 
@@ -56,16 +59,25 @@ impl BlockComponent {
         let mut output_hex = "".to_string();
         let s = self.input.value.replace("\n", "");
 
-        let p = parser::parse(&s);
-        let (dec, hex) = utils::stringify(p, full, size);
-        output_dec = format!("{}{}\n", output_dec, dec);
-        output_hex = format!("{}{}\n", output_hex, hex);
-
         if self.input.height > 136 {
             self.min_height = self.input.height;
         }
-        self.dec = output_dec;
-        self.hex = output_hex;
+
+        let p = parser::parse(&s);
+        if p.is_json() {
+            self.json = p.get_json();
+        } else {
+            let (dec, hex) = utils::stringify(p, full, size);
+            output_dec = format!("{}{}\n", output_dec, dec);
+            output_hex = format!("{}{}\n", output_hex, hex);
+            self.dec = output_dec;
+            self.hex = output_hex;
+            self.json = None;
+        }
+    }
+
+    fn is_json(&self) -> bool {
+        self.json.is_some()
     }
 }
 
@@ -155,7 +167,13 @@ impl Component for BlockComponent {
                         }>
                     </textarea>
                 </div>
-            if ctx.props().toggle {
+            if self.is_json() {
+                <div class="col-span-2 overflow-x-auto text-right peer-focus-within/input:text-emerald-400">
+                    <p class="pt-0 text-gray-400">{ "json: " }</p>
+                    <div class="w-full text-left"><JsonComponent value={self.json.clone().unwrap()}/></div>
+                </div>
+            }
+            else if ctx.props().toggle {
                 <div class="col-span-2 overflow-x-auto text-right peer-focus-within/input:text-emerald-400">
                     <p class="pt-0 text-gray-400">{ "hex: " }</p>
                     <div> {

@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 alloy-core = { version = "0.6.4", features = ["std"] }
 alloy-dyn-abi = "0.7.1"
+alloy-json-abi = "0.7.2"
 base64 = "0.22.0"
 chrono = "0.4.37"
 gloo-console = "0.3.0"

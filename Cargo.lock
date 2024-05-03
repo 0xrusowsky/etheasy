@@ -52,9 +52,9 @@ version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "22ab339ca7b4ea9115f0578c941abc80a171edf8e5eadd01e6c4237b68db8083"
 dependencies = [
- "alloy-json-abi 0.7.1",
- "alloy-primitives 0.7.1",
- "alloy-sol-type-parser 0.7.1",
+ "alloy-json-abi 0.7.2",
+ "alloy-primitives 0.7.2",
+ "alloy-sol-type-parser 0.7.2",
  "alloy-sol-types 0.7.1",
  "const-hex",
  "itoa",
@@ -77,12 +77,12 @@ dependencies = [
 
 [[package]]
 name = "alloy-json-abi"
-version = "0.7.1"
+version = "0.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "44294729c145cf7ae65feab544b5b81fb2bb7e2fd060214842eb3989a1e9d882"
+checksum = "786689872ec4e7d354810ab0dffd48bb40b838c047522eb031cbd47d15634849"
 dependencies = [
- "alloy-primitives 0.7.1",
- "alloy-sol-type-parser 0.7.1",
+ "alloy-primitives 0.7.2",
+ "alloy-sol-type-parser 0.7.2",
  "serde",
  "serde_json",
 ]
@@ -111,9 +111,9 @@ dependencies = [
 
 [[package]]
 name = "alloy-primitives"
-version = "0.7.1"
+version = "0.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "50c715249705afa1e32be79dabfd35e2ef0f1cc02ad2cf48c9d1e20026ee637b"
+checksum = "525448f6afc1b70dd0f9d0a8145631bf2f5e434678ab23ab18409ca264cae6b3"
 dependencies = [
  "alloy-rlp",
  "bytes",
@@ -203,9 +203,9 @@ dependencies = [
 
 [[package]]
 name = "alloy-sol-type-parser"
-version = "0.7.1"
+version = "0.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8c8d6e74e4feeaa2bcfdecfd3da247ab53c67bd654ba1907270c32e02b142331"
+checksum = "7da8e71ea68e780cc203919e03f69f59e7afe92d2696fb1dcb6662f61e4031b6"
 dependencies = [
  "winnow 0.6.6",
 ]
@@ -228,7 +228,7 @@ version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "afaffed78bfb17526375754931e045f96018aa810844b29c7aef823266dd4b4b"
 dependencies = [
- "alloy-primitives 0.7.1",
+ "alloy-primitives 0.7.2",
  "alloy-sol-macro 0.7.1",
  "const-hex",
  "serde",
@@ -745,6 +745,7 @@ version = "0.1.0"
 dependencies = [
  "alloy-core",
  "alloy-dyn-abi 0.7.1",
+ "alloy-json-abi 0.7.2",
  "base64",
  "chrono",
  "gloo-console 0.3.0",

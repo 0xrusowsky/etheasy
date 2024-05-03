@@ -10,7 +10,6 @@ use alloy_core::primitives::{
     utils::{format_ether, format_units, keccak256},
     B256, U256,
 };
-use alloy_dyn_abi::{DynSolType, DynSolValue};
 use base64::{engine::general_purpose::URL_SAFE, Engine as _};
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime, TimeZone, Utc};
 use gloo_console::log;
@@ -307,11 +306,11 @@ fn utility_fn_args(input: &str, mut pairs: Pairs<Rule>, unchecked: bool) -> Pars
                     ParseResult::NAN
                 }
             },
-            "abi_decode" => match abi_parse_argument(&value_str, &args) {
-                Ok(decoded) => match serde_json::to_string_pretty(&decoded) {
-                    Ok(json_string) => trim_quotes(&json_string).into(),
+            "abi_decode" => match abi_process_and_decode_calldata(&value_str, &args) {
+                Ok(decoded) => match serde_json::to_value(&decoded) {
+                    Ok(json) => json.into(),
                     Err(_) => ParseResult::NAN,
-                }
+                },
                 Err(_) => ParseResult::NAN,
             },
             _ => ParseResult::NAN,

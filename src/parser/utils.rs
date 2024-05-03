@@ -59,6 +59,10 @@ pub fn stringify(u: ParseResult, full: bool, size: ScreenSize) -> (String, Strin
             }
             ("-".to_string(), s)
         }
+        ParseResult::Json(j) => {
+            let json = serde_json::to_string_pretty(&j).unwrap_or_default();
+            ("-".to_string(), format_size(json, true, size))
+        }
     }
 }
 
