@@ -310,11 +310,25 @@ fn utility_fn_args(input: &str, mut pairs: Pairs<Rule>, unchecked: bool) -> Pars
                 }
             },
             "abi_decode" => match abi_process_and_decode_calldata(&value_str, &args) {
-                Ok(decoded) => match serde_json::to_value(&decoded) {
+                (Some(selector), Ok(decoded)) => {
+                    match serde_json::to_value(&decoded) {
+                        Ok(mut json) => {
+                            // Convert serde_json::Value into Vec<serde_json::Value>
+                            if let Some(array) = json.as_array_mut() {
+                                array.insert(0, serde_json::to_value(&selector).unwrap());
+                            }
+                            // Convert Vec<serde_json::Value> back into serde_json::Value
+                            let json = serde_json::Value::Array(json.as_array().unwrap().clone());
+                            json.into()
+                        }
+                        Err(_) => ParseResult::NAN,
+                    }
+                }
+                (None, Ok(decoded)) => match serde_json::to_value(&decoded) {
                     Ok(json) => json.into(),
                     Err(_) => ParseResult::NAN,
                 },
-                Err(_) => ParseResult::NAN,
+                (_, Err(_)) => ParseResult::NAN,
             },
             _ => ParseResult::NAN,
         }
@@ -326,13 +340,6 @@ fn utility_fn_args(input: &str, mut pairs: Pairs<Rule>, unchecked: bool) -> Pars
                     "root" => value.root(args.parse().unwrap_or(2)).into(),
                     "format_units" => format_units(value, args).ok().into(),
                     "unix" => format_unix(value, Some(args.to_string())),
-                    "abi_decode" => match abi_process_and_decode_calldata(&value_str, &args) {
-                        Ok(decoded) => match serde_json::to_value(&decoded) {
-                            Ok(json) => json.into(),
-                            Err(_) => ParseResult::NAN,
-                        },
-                        Err(_) => ParseResult::NAN,
-                    },
                     _ => ParseResult::NAN,
                 }
             }

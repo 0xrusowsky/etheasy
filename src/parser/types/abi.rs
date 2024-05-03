@@ -67,7 +67,7 @@ pub fn abi_decode_calldata(
 pub fn abi_process_and_decode_calldata(
     abi: &str,
     calldata: &str,
-) -> Result<Vec<Encodable>, String> {
+) -> (Option<FunctionSelector>, Result<Vec<Encodable>, String>) {
     // process abi to get the function signature
     let sig = if abi.starts_with("(") && abi.ends_with(")") {
         format!("dummy_fn{}", abi)
@@ -81,13 +81,22 @@ pub fn abi_process_and_decode_calldata(
         format!("0x{}", calldata)
     };
 
-    let with_selector = calldata.len() % 64 == 10;
-    if !with_selector && calldata.len() % 64 != 2 {
-        return Err("invalid calldata length".to_string());
-    }
+    let selector = if calldata.len() % 64 == 10 {
+        Some(FunctionSelector {
+            fn_selector: calldata[..10].to_string(),
+        })
+    } else {
+        if calldata.len() % 64 != 2 {
+            return (None, Err("invalid calldata length".to_string()));
+        }
+        None
+    };
 
-    abi_decode_calldata(&sig, &calldata, true, with_selector)
-        .map(|vec_dynsol| vec_dynsol.into_iter().map(Encodable::from).collect())
+    let decoded = abi_decode_calldata(&sig, &calldata, true, selector.is_some());
+    (
+        selector,
+        decoded.map(|vec_dynsol| vec_dynsol.into_iter().map(Encodable::from).collect()),
+    )
 }
 
 impl Serialize for Encodable {
@@ -145,4 +154,10 @@ impl Serialize for Encodable {
             }
         }
     }
+}
+
+// Define a struct representing the object
+#[derive(Serialize)]
+pub struct FunctionSelector {
+    fn_selector: String,
 }
