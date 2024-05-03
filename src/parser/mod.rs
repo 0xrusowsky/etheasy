@@ -3,7 +3,7 @@ mod convert_chart;
 pub mod types;
 pub mod utils;
 use convert_chart::{convert, UnitType};
-use types::*;
+use types::{abi::*, result::*};
 use utils::*;
 
 use alloy_core::primitives::{
@@ -154,7 +154,6 @@ fn eval(expression: Pairs<Rule>, unchecked: bool) -> ParseResult {
                 U256::from_str_radix(bin, 2).ok().into()
             }
             Rule::quote => trim_quotes(pair.as_str()).into(),
-            Rule::array => trim_quotes(pair.as_str()).into(),
             Rule::expr => eval(pair.into_inner(), unchecked),
             _ => ParseResult::NAN,
         },
@@ -286,6 +285,10 @@ fn utility_fn_args(input: &str, mut pairs: Pairs<Rule>, unchecked: bool) -> Pars
     let value = pairs.next().unwrap();
     let value_str = value.clone().as_str();
     let value_inner = value.into_inner();
+    gloo_console::log!(input);
+    gloo_console::log!(value_str);
+    gloo_console::log!(&value_inner.to_string());
+    gloo_console::log!(&value_inner.len().to_string());
     // if value is a quote, value_inner will be empty
     if value_inner.len() == 0 {
         let value_str = trim_quotes(value_str);
@@ -323,6 +326,13 @@ fn utility_fn_args(input: &str, mut pairs: Pairs<Rule>, unchecked: bool) -> Pars
                     "root" => value.root(args.parse().unwrap_or(2)).into(),
                     "format_units" => format_units(value, args).ok().into(),
                     "unix" => format_unix(value, Some(args.to_string())),
+                    "abi_decode" => match abi_process_and_decode_calldata(&value_str, &args) {
+                        Ok(decoded) => match serde_json::to_value(&decoded) {
+                            Ok(json) => json.into(),
+                            Err(_) => ParseResult::NAN,
+                        },
+                        Err(_) => ParseResult::NAN,
+                    },
                     _ => ParseResult::NAN,
                 }
             }

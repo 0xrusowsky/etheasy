@@ -36,7 +36,7 @@ fn json_to_html(value: &Value, indent: usize) -> Html {
                 html! { <>
                 { for map.iter().map(|(k, v)| html! {
                     <div>
-                        <span>{format!("{}\"{}\": {}", indent_str, k, v)}</span>
+                        <span>{format!("{}{}: {}", indent_str, k, v)}</span>
                     </div>
                 })}
                 </> }
@@ -44,24 +44,30 @@ fn json_to_html(value: &Value, indent: usize) -> Html {
                 html! { <>
                 { for map.iter().map(|(k, v)| html! {
                     <div>
-                        <span>{format!("{}\"{}\": ", indent_str, k)}</span>
+                        <span>{format!("{}{}: ", indent_str, k)}</span>
                         {json_to_html(v, indent + 1)}
                     </div>
                 })}
                 </> }
             }
         }
-        Value::Array(vec) => html! {
-            <>
-                <div>{format!("[")}</div> <> {
-                for vec.iter().map(|item| html! {
-                    <>
-                        {json_to_html(item, indent + 1)}
-                    </>
-                })
-                 } </> <div>{format!("{}]", indent_str)}</div>
-            </>
-        },
+        Value::Array(vec) => {
+            if vec.is_empty() {
+                html! { <div>{"[]"}</div> }
+            } else {
+                html! {
+                <>
+                    <div>{format!("{}[", indent_str)}</div> <> {
+                    for vec.iter().map(|item| html! {
+                        <>
+                            {json_to_html(item, indent + 1)}
+                        </>
+                    })
+                     } </> <div>{format!("{}]{}", indent_str, if indent_str != "" {","} else {""})}</div>
+                </>
+                    }
+            }
+        }
         Value::String(s) => html! {
             <div>{format!("{}\"{}\"", indent_str, s)}</div>
         },

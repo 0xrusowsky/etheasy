@@ -1,4 +1,4 @@
-use super::types::ParseResult;
+use super::types::result::ParseResult;
 use crate::components::frame::ScreenSize;
 use alloy_core::primitives::{Address, B256, U256};
 

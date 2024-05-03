@@ -1,97 +1,12 @@
-#![allow(dead_code)]
-use super::utils::vectorize_str;
-use alloy_core::primitives::U256;
-use chrono::format;
-use serde::ser::SerializeStruct;
-use std::borrow::Cow;
-
-pub enum ParseResult {
-    Value(U256),
-    String(String),
-    Json(serde_json::Value),
-    NAN,
-}
-
-impl ParseResult {
-    pub fn is_str(&self) -> bool {
-        matches!(self, Self::String(_))
-    }
-
-    pub fn is_address(&self) -> bool {
-        match self {
-            Self::String(s) => s.starts_with("0x") && s.len() == 42,
-            _ => false,
-        }
-    }
-
-    pub fn is_u256(&self) -> bool {
-        matches!(self, Self::Value(_))
-    }
-
-    pub fn is_nan(&self) -> bool {
-        matches!(self, Self::NAN)
-    }
-
-    pub fn is_json(&self) -> bool {
-        matches!(self, Self::Json(_))
-    }
-
-    pub fn get_json(&self) -> Option<serde_json::Value> {
-        match self {
-            Self::Json(j) => Some(j.to_owned()),
-            _ => None,
-        }
-    }
-}
-
-impl From<String> for ParseResult {
-    fn from(s: String) -> Self {
-        ParseResult::String(s)
-    }
-}
-
-impl From<&str> for ParseResult {
-    fn from(s: &str) -> Self {
-        ParseResult::String(s.to_string())
-    }
-}
-
-impl From<U256> for ParseResult {
-    fn from(u: U256) -> Self {
-        ParseResult::Value(u)
-    }
-}
-
-impl From<Option<U256>> for ParseResult {
-    fn from(u: Option<U256>) -> Self {
-        match u {
-            Some(u) => ParseResult::Value(u),
-            None => ParseResult::NAN,
-        }
-    }
-}
-
-impl From<Option<String>> for ParseResult {
-    fn from(s: Option<String>) -> Self {
-        match s {
-            Some(s) => ParseResult::String(s),
-            None => ParseResult::NAN,
-        }
-    }
-}
-
-impl From<serde_json::Value> for ParseResult {
-    fn from(v: serde_json::Value) -> Self {
-        ParseResult::Json(v)
-    }
-}
-
-use alloy_core::primitives::{hex, Address, LogData};
+use alloy_core::primitives::hex;
 use alloy_dyn_abi::FunctionExt;
 use alloy_dyn_abi::JsonAbiExt;
 use alloy_dyn_abi::{DynSolType, DynSolValue};
 use alloy_json_abi::{Event, Function};
-use serde::{ser::SerializeSeq, Serialize, Serializer};
+use serde::{
+    ser::{SerializeSeq, SerializeStruct},
+    Serialize, Serializer,
+};
 
 #[derive(Debug)]
 pub struct Encodable(DynSolValue);
@@ -117,6 +32,8 @@ pub fn abi_decode_calldata(
     input: bool,
     fn_selector: bool,
 ) -> Result<Vec<DynSolValue>, String> {
+    gloo_console::log!(sig);
+    gloo_console::log!(calldata);
     let func = get_func(sig)?;
     let calldata = match hex::decode(calldata) {
         Ok(calldata) => calldata,
@@ -205,7 +122,6 @@ impl Serialize for Encodable {
                 state.end()
             }
             DynSolValue::Function(_) => {
-                // Since function type isn't expected in output, log the unexpected scenario
                 gloo_console::log!("Unexpected function type in serialization.");
                 unreachable!("Unexpected function type in serialization")
             }
@@ -220,6 +136,7 @@ impl Serialize for Encodable {
                 state.end()
             }
             DynSolValue::Array(v) | DynSolValue::FixedArray(v) | DynSolValue::Tuple(v) => {
+                gloo_console::log!(format!("Array: {:?}", v));
                 let mut seq = serializer.serialize_seq(Some(v.len()))?;
                 for elem in v.iter() {
                     seq.serialize_element(&Encodable(elem.clone()))?;
