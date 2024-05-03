@@ -1,4 +1,4 @@
-use serde_json::{json, Map, Value};
+use serde_json::{Map, Value};
 use yew::prelude::*;
 
 #[derive(Properties, PartialEq)]
@@ -27,7 +27,7 @@ impl Component for JsonComponent {
 }
 
 fn json_to_html(value: &Value, indent: usize) -> Html {
-    let indent_str = "\u{00a0}".repeat(indent * 4); // Each indent level adds four non-breaking spaces
+    let indent_str = "\u{00a0}".repeat(indent * 4);
     match value {
         Value::Object(map) => single_obj_to_html(map, indent),
         Value::Array(vec) => {
@@ -57,7 +57,7 @@ fn json_to_html(value: &Value, indent: usize) -> Html {
 }
 
 fn single_obj_to_html(obj: &Map<String, Value>, indent: usize) -> Html {
-    let indent_str = "\u{00a0}".repeat(indent * 4); // Each indent level adds four non-breaking spaces
+    let indent_str = "\u{00a0}".repeat(indent * 4);
     if obj.is_empty() {
         html! { <div>{"{},"}</div> }
     } else if obj.len() == 1 {
@@ -77,7 +77,7 @@ fn single_obj_to_html(obj: &Map<String, Value>, indent: usize) -> Html {
 }
 
 fn array_obj_to_html(obj: Option<&Map<String, Value>>, indent: usize) -> Html {
-    let indent_str = "\u{00a0}".repeat(indent * 4); // Each indent level adds four non-breaking spaces
+    let indent_str = "\u{00a0}".repeat(indent * 4);
     match obj {
         Some(obj) => {
             if obj.is_empty() {
@@ -107,7 +107,7 @@ fn array_obj_to_html(obj: Option<&Map<String, Value>>, indent: usize) -> Html {
 }
 
 fn array_to_html(vec: &Vec<Value>, indent: usize) -> Html {
-    let indent_str = "\u{00a0}".repeat(indent * 4); // Each indent level adds four non-breaking spaces
+    let indent_str = "\u{00a0}".repeat(indent * 4);
     if vec.is_empty() {
         html! { <div>{"[]"}</div> }
     } else {
@@ -140,7 +140,7 @@ fn array_to_html(vec: &Vec<Value>, indent: usize) -> Html {
                             {json_to_html(item, indent + 1)}
                         </>
                     })
-                     } </> <div>{format!("{}]{}", indent_str, if indent_str != "" {","} else {""})}</div>
+                     } </> <div>{"{}],"}</div>
                 </>
                     }
             }

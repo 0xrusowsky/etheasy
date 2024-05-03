@@ -1,70 +1,4 @@
-use super::types::result::ParseResult;
-use crate::components::frame::ScreenSize;
 use alloy_core::primitives::{Address, B256, U256};
-
-pub fn format_size(str: String, full: bool, size: ScreenSize) -> String {
-    let chars = {
-        let (short, long) = match size {
-            ScreenSize::XS => (14, 30),
-            ScreenSize::SM => (18, 37),
-            ScreenSize::MD => (23, 49),
-            ScreenSize::LG => (33, 66),
-            ScreenSize::XL => (33, 66),
-            _ => (40, 66),
-        };
-        if full {
-            long
-        } else {
-            short
-        }
-    };
-
-    let mut s = "".to_string();
-    for (i, c) in str.chars().enumerate() {
-        if i % chars == 0 && i != 0 {
-            s.push_str("\n");
-        }
-        s.push(c);
-    }
-    s
-}
-pub fn stringify(u: ParseResult, full: bool, size: ScreenSize) -> (String, String) {
-    match u {
-        ParseResult::NAN => ("-".to_string(), "-".to_string()),
-        ParseResult::Value(u) => {
-            let dec = u.to_string();
-            let hex: B256 = u.into();
-            let hex_str = hex.to_string();
-
-            // When `full` is `false`, trim the leading zeros from the hex representation
-            if !full {
-                let hex_formatted = format!("0x{}", hex_str[2..].trim_start_matches("0"));
-                if hex_formatted == "0x" {
-                    (dec, "0x0".to_string())
-                } else {
-                    let dec = format_size(dec, false, size);
-                    let mut hex_formatted = format_size(hex_formatted, false, size);
-                    if count_chars(&dec, "\n") > count_chars(&hex_formatted, "\n") {
-                        hex_formatted = format!("{}\n-", hex_formatted);
-                    }
-                    (dec, hex_formatted)
-                }
-            } else {
-                ("-".to_string(), format_size(hex_str, true, size))
-            }
-        }
-        ParseResult::String(mut s) => {
-            if !s.starts_with("0x") {
-                s = format!("'{}'", s);
-            }
-            ("-".to_string(), s)
-        }
-        ParseResult::Json(j) => {
-            let json = serde_json::to_string_pretty(&j).unwrap_or_default();
-            ("-".to_string(), format_size(json, true, size))
-        }
-    }
-}
 
 pub fn trim_quotes(input: &str) -> String {
     let mut chars = input.chars();
@@ -129,8 +63,4 @@ pub fn remove_trailing_zeros(s: &str) -> String {
 
 pub fn count_chars(s: &str, c: &str) -> usize {
     s.len() - s.replace(c, "").len()
-}
-
-pub fn vectorize_str(input: &str) -> String {
-    format!("({})", input.trim_matches(|c| c == '[' || c == ']'))
 }

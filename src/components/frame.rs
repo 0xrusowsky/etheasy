@@ -1,4 +1,4 @@
-use crate::components::{block::BlockComponent, theme::ThemeComponent};
+use crate::components::block::BlockComponent;
 
 use gloo_console::log;
 use wasm_bindgen::prelude::*;
@@ -8,21 +8,9 @@ use yew::{prelude::*, Component};
 pub enum Msg {
     // app config
     Toggle,
-    SwitchTheme(bool),
-    CheckScreenSize,
     // block config
     AddBlock,
     FocusBlock,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum ScreenSize {
-    XS,  // dec-hex: 14 | hex-full: 30
-    SM,  // dec-hex: 18 | hex-full: 37
-    MD,  // dec-hex: 23 | hex-full: 49
-    LG,  // dec-hex: 33 | hex-full: 66
-    XL,  // dec-hex: 33 | hex-full: 66
-    XXL, // dec-hex: 40 | hex-full: 66
 }
 
 #[derive(Properties, PartialEq)]
@@ -33,7 +21,6 @@ pub struct Props {
 pub struct FrameComponent {
     dark_mode: bool,
     toggle: bool,
-    size: ScreenSize,
     blocks: usize,
     focus: usize,
     focus_ref: NodeRef,
@@ -47,33 +34,9 @@ impl FrameComponent {
     fn is_dark_mode(&self) -> bool {
         self.dark_mode
     }
-
-    fn screen_size(&self) -> ScreenSize {
-        self.size
-    }
 }
 
 impl FrameComponent {
-    fn check_screen_size(&mut self) {
-        let width = window().unwrap().inner_width().unwrap().as_f64().unwrap();
-
-        self.size = if width < 640_f64 {
-            ScreenSize::XS
-        } else if width < 768_f64 {
-            ScreenSize::SM
-        } else if width < 1024_f64 {
-            ScreenSize::MD
-        } else if width < 1280_f64 {
-            ScreenSize::LG
-        } else if width < 1536_f64 {
-            ScreenSize::XL
-        } else {
-            ScreenSize::XXL
-        };
-
-        log!(format!("Current screen size: {:#?}", self.size));
-    }
-
     fn last_block(&self) -> usize {
         self.blocks - 1
     }
@@ -84,35 +47,17 @@ impl Component for FrameComponent {
     type Properties = ();
 
     fn create(ctx: &Context<Self>) -> Self {
-        let mut frame = Self {
+        Self {
             dark_mode: false,
             toggle: false,
-            size: ScreenSize::MD,
             blocks: 1,
             focus: 0,
             focus_ref: NodeRef::default(),
-        };
-
-        frame.check_screen_size();
-
-        let link = ctx.link().clone();
-        let on_resize = Closure::wrap(Box::new(move |_event: Event| {
-            link.send_message(Msg::CheckScreenSize);
-        }) as Box<dyn FnMut(Event)>);
-        window()
-            .expect("no global `window` exists")
-            .add_event_listener_with_callback("resize", on_resize.as_ref().unchecked_ref())
-            .expect("failed to listen for resize");
-        on_resize.forget();
-
-        frame
+        }
     }
 
     fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
-            Msg::CheckScreenSize => {
-                self.check_screen_size();
-            }
             Msg::AddBlock => {
                 self.blocks += 1;
                 self.focus = self.last_block();
@@ -122,9 +67,6 @@ impl Component for FrameComponent {
             }
             Msg::Toggle => {
                 self.toggle = !self.is_toggled();
-            }
-            Msg::SwitchTheme(is) => {
-                self.dark_mode = is;
             }
         };
         true
@@ -168,7 +110,7 @@ impl Component for FrameComponent {
                         for (0..self.blocks).rev().map(|index| {
                             html! {
                                 <BlockComponent key={index}
-                                    block_count={self.last_block()} block_id={index} toggle={self.is_toggled()} size={self.screen_size()}
+                                    block_count={self.last_block()} block_id={index} toggle={self.is_toggled()}
                                     on_enter={
                                         // only trigger AddBlock if Enter is pressed on the last block
                                         if index == self.last_block() {

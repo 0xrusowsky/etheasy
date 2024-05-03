@@ -99,6 +99,7 @@ fn eval(expression: Pairs<Rule>, unchecked: bool) -> ParseResult {
                 } else {
                     match eval(i, unchecked) {
                         ParseResult::Value(value) => utility_fn_val(name, value),
+                        ParseResult::String(s) => utility_fn_str(name, &s),
                         _ => ParseResult::NAN,
                     }
                 }
@@ -249,6 +250,34 @@ fn utility_fn_str(input: &str, value: &str) -> ParseResult {
         "selector" => keccak256(value.replace(' ', "")).to_string()[..10]
             .to_string()
             .into(),
+        "debug" => {
+            let (prefix, start) = if value.starts_with("0x") {
+                match value.len() % 64 {
+                    2 => (true, 2),
+                    10 => (true, 10),
+                    _ => (true, value.len()),
+                }
+            } else {
+                match value.len() % 64 {
+                    0 => (false, 0),
+                    8 => (false, 8),
+                    _ => (false, value.len()),
+                }
+            };
+            let mut formatted = if prefix {
+                format!("0x\n{}", &value[2..start])
+            } else {
+                value[..start].to_string()
+            };
+            for i in (start..value.len()).step_by(64) {
+                let end = std::cmp::min(i + 64, value.len());
+                gloo_console::log!("i", i);
+                gloo_console::log!("end", end);
+                gloo_console::log!(&value[i..end]);
+                formatted = format!("{}\n{}", formatted, &value[i..end]);
+            }
+            formatted.into()
+        }
         "guess_selector" | "fn_from_selector" => "to do".into(),
         // string manipulation
         "len" | "chars" => U256::from(value.len()).into(),
@@ -330,6 +359,28 @@ fn utility_fn_args(input: &str, mut pairs: Pairs<Rule>, unchecked: bool) -> Pars
                 },
                 (_, Err(_)) => ParseResult::NAN,
             },
+            "abi_encode" => {
+                let args = args
+                    .split(",")
+                    .into_iter()
+                    .map(|s| s.trim().to_owned())
+                    .collect();
+                match abi_encode(&value_str, args, false) {
+                    Ok(encoded) => encoded.into(),
+                    Err(_) => ParseResult::NAN,
+                }
+            }
+            "abi_encode_with_sig" | "abi_encode_with_selector" => {
+                let args = args
+                    .split(",")
+                    .into_iter()
+                    .map(|s| s.trim().to_owned())
+                    .collect();
+                match abi_encode(&value_str, args, true) {
+                    Ok(encoded) => encoded.into(),
+                    Err(_) => ParseResult::NAN,
+                }
+            }
             _ => ParseResult::NAN,
         }
     } else {

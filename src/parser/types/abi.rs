@@ -2,28 +2,11 @@ use alloy_core::primitives::hex;
 use alloy_dyn_abi::FunctionExt;
 use alloy_dyn_abi::JsonAbiExt;
 use alloy_dyn_abi::{DynSolType, DynSolValue};
-use alloy_json_abi::{Event, Function};
+use alloy_json_abi::Function;
 use serde::{
     ser::{SerializeSeq, SerializeStruct},
     Serialize, Serializer,
 };
-
-#[derive(Debug)]
-pub struct Encodable(DynSolValue);
-
-impl From<DynSolValue> for Encodable {
-    fn from(dyn_sol_value: DynSolValue) -> Self {
-        Encodable(dyn_sol_value)
-    }
-}
-
-/// Given a function signature string, it tries to parse it as a `Function`
-pub fn get_func(sig: &str) -> Result<Function, String> {
-    match Function::parse(sig) {
-        Ok(func) => Ok(func),
-        Err(e) => Err(format!("could not parse function signature: {}", e)),
-    }
-}
 
 /// Decodes the calldata of the function
 pub fn abi_decode_calldata(
@@ -32,9 +15,10 @@ pub fn abi_decode_calldata(
     input: bool,
     fn_selector: bool,
 ) -> Result<Vec<DynSolValue>, String> {
-    gloo_console::log!(sig);
-    gloo_console::log!(calldata);
-    let func = get_func(sig)?;
+    let func = match Function::parse(sig) {
+        Ok(func) => func,
+        Err(e) => return Err(format!("could not parse function signature: {}", e)),
+    };
     let calldata = match hex::decode(calldata) {
         Ok(calldata) => calldata,
         Err(e) => return Err(format!("failed to decode calldata: {}", e)),
@@ -97,6 +81,63 @@ pub fn abi_process_and_decode_calldata(
         selector,
         decoded.map(|vec_dynsol| vec_dynsol.into_iter().map(Encodable::from).collect()),
     )
+}
+
+/// Given a function and a vector of string arguments, it proceeds to convert the args to alloy
+/// [DynSolValue]s and then ABI encode them.
+pub fn encode_function_args(func: &Function, args: Vec<String>) -> Result<Vec<u8>, String> {
+    let params: Result<Vec<_>, _> = std::iter::zip(&func.inputs, args.into_iter())
+        .map(
+            |(input, arg)| match DynSolType::parse(&input.selector_type()) {
+                Ok(ty) => match DynSolType::coerce_str(&ty, &arg) {
+                    Ok(encoded) => {
+                        gloo_console::log!(format!("{:#?}", encoded));
+                        Ok(encoded)
+                    }
+                    Err(e) => return Err(format!("failed to coerce value: {}", e)),
+                },
+                Err(e) => return Err(format!("failed to parse type: {}", e)),
+            },
+        )
+        .collect();
+
+    let params = params.map_err(|e| format!("failed to prepare function arguments: {}", e))?;
+    match func.abi_encode_input(params.as_slice()) {
+        Ok(res) => Ok(res),
+        Err(e) => Err(format!("failed to encode function arguments: {}", e)),
+    }
+}
+
+pub fn abi_encode(abi: &str, args: Vec<String>, with_selector: bool) -> Result<String, String> {
+    // process abi to get the function signature
+    let sig = if abi.starts_with("(") && abi.ends_with(")") {
+        format!("dummy_fn{}", abi)
+    } else {
+        abi.to_string()
+    };
+    let func = match Function::parse(&sig) {
+        Ok(func) => func,
+        Err(e) => return Err(format!("could not parse function signature: {}", e)),
+    };
+    let calldata = match encode_function_args(&func, args) {
+        Ok(res) => hex::encode(res),
+        Err(e) => return Err(format!("Could not ABI encode the function and arguments. Did you pass in the right types?\nError\n{}", e)),
+    };
+    gloo_console::log!("calldata: {}", &calldata);
+    if !with_selector {
+        Ok(format!("0x{}", &calldata[8..]))
+    } else {
+        Ok(format!("0x{calldata}"))
+    }
+}
+
+#[derive(Debug)]
+pub struct Encodable(DynSolValue);
+
+impl From<DynSolValue> for Encodable {
+    fn from(dyn_sol_value: DynSolValue) -> Self {
+        Encodable(dyn_sol_value)
+    }
 }
 
 impl Serialize for Encodable {

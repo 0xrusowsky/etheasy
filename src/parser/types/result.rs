@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-use alloy_core::primitives::U256;
+use alloy_core::primitives::{B256, U256};
 
 pub enum ParseResult {
     Value(U256),
@@ -35,6 +35,29 @@ impl ParseResult {
         match self {
             Self::Json(j) => Some(j.to_owned()),
             _ => None,
+        }
+    }
+
+    pub fn to_hex_string(&self, full_evm_word: bool) -> String {
+        match self {
+            ParseResult::Value(u) => {
+                let hex: B256 = (*u).into();
+                let hex_str = hex.to_string();
+                // When `full_evm_word` is `false`, trim the leading zeros from the hex representation
+                if !full_evm_word {
+                    let hex_formatted = format!("0x{}", hex_str[2..].trim_start_matches("0"));
+                    if hex_formatted == "0x" {
+                        "0x0".to_string()
+                    } else {
+                        hex_formatted
+                    }
+                } else {
+                    hex_str
+                }
+            }
+            ParseResult::String(s) => s.to_string(),
+            ParseResult::Json(j) => j.to_string(),
+            ParseResult::NAN => "-".to_string(),
         }
     }
 }
@@ -78,5 +101,16 @@ impl From<Option<String>> for ParseResult {
 impl From<serde_json::Value> for ParseResult {
     fn from(v: serde_json::Value) -> Self {
         ParseResult::Json(v)
+    }
+}
+
+impl ToString for ParseResult {
+    fn to_string(&self) -> String {
+        match self {
+            ParseResult::Value(u) => u.to_string(),
+            ParseResult::String(s) => s.to_string(),
+            ParseResult::Json(j) => j.to_string(),
+            ParseResult::NAN => "-".to_string(),
+        }
     }
 }

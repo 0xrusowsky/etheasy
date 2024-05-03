@@ -1,8 +1,7 @@
-use crate::components::{frame::ScreenSize, json::JsonComponent};
+use crate::components::json::JsonComponent;
 use crate::parser::{self, utils};
 
 use gloo_console::log;
-use pest::ParseResult;
 use web_sys::HtmlTextAreaElement;
 use yew::{prelude::*, Component};
 
@@ -18,7 +17,6 @@ pub struct BlockProps {
     pub textarea_ref: NodeRef,
     // app state
     pub toggle: bool,
-    pub size: ScreenSize,
     pub block_count: usize,
     pub block_id: usize,
 }
@@ -54,9 +52,7 @@ impl BlockComponent {
         }
     }
 
-    fn parse_input(&mut self, full: bool, size: ScreenSize) {
-        let mut output_dec = "".to_string();
-        let mut output_hex = "".to_string();
+    fn parse_input(&mut self, full: bool) {
         let s = self.input.value.replace("\n", "");
 
         if self.input.height > 136 {
@@ -67,11 +63,8 @@ impl BlockComponent {
         if p.is_json() {
             self.json = p.get_json();
         } else {
-            let (dec, hex) = utils::stringify(p, full, size);
-            output_dec = format!("{}{}\n", output_dec, dec);
-            output_hex = format!("{}{}\n", output_hex, hex);
-            self.dec = output_dec;
-            self.hex = output_hex;
+            self.dec = p.to_string();
+            self.hex = p.to_hex_string(full);
             self.json = None;
         }
     }
@@ -94,7 +87,7 @@ impl Component for BlockComponent {
             Msg::InputChanged(input) => {
                 self.initialized = true;
                 self.input = input;
-                self.parse_input(ctx.props().toggle, ctx.props().size);
+                self.parse_input(ctx.props().toggle);
                 // Manually resize textarea to avoid scrollbars
                 if let Some(textarea) = ctx.props().textarea_ref.cast::<HtmlTextAreaElement>() {
                     match textarea.remove_attribute("style") {
@@ -174,12 +167,12 @@ impl Component for BlockComponent {
                 </div>
             }
             else if ctx.props().toggle {
-                <div class="col-span-2 overflow-x-auto text-right peer-focus-within/input:text-emerald-400">
+                <div class="col-span-2 resize-none overflow-y-auto text-right peer-focus-within/input:text-emerald-400">
                     <p class="pt-0 text-gray-400">{ "hex: " }</p>
-                    <div> {
+                    <div class="whitespace-normal break-all"> {
                         for self.hex.split('\n').into_iter().map(|v| {
                             html!{
-                                <div class="w-full ">{ v }</div>
+                                <div class="w-full">{ v }</div>
                             } })
                         }
                     </div>
@@ -187,7 +180,7 @@ impl Component for BlockComponent {
             } else {
                     <div class="col-span-1 overflow-x-auto text-right peer-focus-within/input:text-amber-300 pl-2">
                         <p class="pt-0 text-gray-400">{ "dec: " }</p>
-                        <div> {
+                        <div class="whitespace-normal break-all"> {
                             for self.dec.split('\n').into_iter().map(|v| {
                                 html!{
                                     <div class="w-full ">{ v }</div>
@@ -197,7 +190,7 @@ impl Component for BlockComponent {
                     </div>
                 <div class="col-span-1 overflow-x-auto text-right peer-focus-within/input:text-emerald-400">
                     <p class="pt-0 text-gray-400">{ "hex: " }</p>
-                    <div> {
+                    <div class="whitespace-normal break-all pl-1"> {
                         for self.hex.split('\n').into_iter().map(|v| {
                             html!{
                                 <div class="w-full ">{ v }</div>
@@ -211,7 +204,7 @@ impl Component for BlockComponent {
     }
 
     fn changed(&mut self, ctx: &Context<Self>, _old_props: &Self::Properties) -> bool {
-        self.parse_input(ctx.props().toggle, ctx.props().size);
+        self.parse_input(ctx.props().toggle);
         true
     }
 }
