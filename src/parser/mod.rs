@@ -360,11 +360,8 @@ fn utility_fn_args(input: &str, mut pairs: Pairs<Rule>, unchecked: bool) -> Pars
                 (_, Err(_)) => ParseResult::NAN,
             },
             "abi_encode" => {
-                let args = args
-                    .split(",")
-                    .into_iter()
-                    .map(|s| s.trim().to_owned())
-                    .collect();
+                let args = split_top_level(trim_parentheses(&args));
+                gloo_console::log!(format!("{:?}", args));
                 match abi_encode(&value_str, args, false) {
                     Ok(encoded) => encoded.into(),
                     Err(_) => ParseResult::NAN,

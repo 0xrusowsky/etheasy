@@ -112,16 +112,17 @@ impl Component for App {
             </div>
         </div>
         // playground
-        <div class="px-3 bg-gray-100 dark:bg-dark-primary text-gray-800 dark:text-gray-200 md:px-0">
+        <div class="px-3 bg-gray-100 dark:bg-dark-primary md:px-0">
         <div class="min-h-screen flex flex-col items-center justify-center w-full space-y-8">
         <div class="w-full max-w-md md:max-w-2xl lg:max-w-4xl 2xl:max-w-6xl 4xl:max-w-8xl">
             // frame
             <div id="playground"> <FrameComponent /> </div>
             // footer
-            <div class="flex flex-col sm:flex-row justify-center items-center space-x-2 py-3">
-                    <p class="text-sm"> {"© 2024 etheasy"} </p>
-                    <p class="text-sm hidden sm:inline"> {"|"} </p>
-                    <a href="https://0xrusowsky.github.io/blog/" class="text-sm"> {"0xrusowsky"} </a>
+            <div class="text-sm text-gray-600 dark:text-gray-400 flex flex-col sm:flex-row justify-center items-center space-x-2 py-3">
+                    <p> {"© 2024 etheasy"} </p>
+                    <p class="hidden sm:inline px-1"> {"|"} </p>
+                    <a class="transition-colors duration-200 hover:scale-105 hover:text-gray-900 dark:hover:text-gray-100"
+                       href="https://0xrusowsky.github.io/blog/"> {"0xrusowsky"} </a>
             </div>
         </div>
         </div>

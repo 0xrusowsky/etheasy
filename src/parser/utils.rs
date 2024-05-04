@@ -64,3 +64,57 @@ pub fn remove_trailing_zeros(s: &str) -> String {
 pub fn count_chars(s: &str, c: &str) -> usize {
     s.len() - s.replace(c, "").len()
 }
+
+pub fn trim_parentheses(input: &str) -> &str {
+    let mut chars = input.chars();
+    let first = chars.next();
+    let last = chars.last();
+
+    match (first, last) {
+        (Some('('), Some(')')) => &input[1..input.len() - 1],
+        (Some('('), _) => &input[1..],
+        (_, Some(')')) => &input[..input.len() - 1],
+        _ => input,
+    }
+}
+
+pub fn split_top_level(input: &str) -> Vec<String> {
+    let mut result = Vec::new();
+    let mut current = String::new();
+    let mut bracket_depth = 0;
+    let mut parenthesis_depth = 0;
+    let mut chars = input.chars().peekable();
+
+    while let Some(c) = chars.next() {
+        match c {
+            ',' if bracket_depth == 0 && parenthesis_depth == 0 => {
+                // If we're not inside any brackets or parentheses, split here
+                result.push(current.trim().to_string());
+                current = String::new();
+            }
+            '[' => {
+                bracket_depth += 1;
+                current.push(c);
+            }
+            ']' => {
+                bracket_depth -= 1;
+                current.push(c);
+            }
+            '(' => {
+                parenthesis_depth += 1;
+                current.push(c);
+            }
+            ')' => {
+                parenthesis_depth -= 1;
+                current.push(c);
+            }
+            _ => current.push(c),
+        }
+    }
+
+    if !current.is_empty() {
+        result.push(current.trim().to_string());
+    }
+
+    result
+}
