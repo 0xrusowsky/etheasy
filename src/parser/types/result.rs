@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 use alloy_core::primitives::{B256, U256};
 
+#[derive(Debug)]
 pub enum ParseResult {
     Value(U256),
     String(String),
@@ -34,6 +35,13 @@ impl ParseResult {
     pub fn get_json(&self) -> Option<serde_json::Value> {
         match self {
             Self::Json(j) => Some(j.to_owned()),
+            _ => None,
+        }
+    }
+
+    pub fn get_string(&self) -> Option<String> {
+        match self {
+            Self::String(s) => Some(s.to_owned()),
             _ => None,
         }
     }

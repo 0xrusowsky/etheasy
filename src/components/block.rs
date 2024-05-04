@@ -1,4 +1,5 @@
 use crate::components::json::JsonComponent;
+use crate::parser::types::result::ParseResult;
 use crate::parser::{self, utils};
 
 use gloo_console::log;
@@ -29,48 +30,40 @@ pub struct TextAreaInput {
 
 #[derive(Debug)]
 pub struct BlockComponent {
+    min_height: i32,
     initialized: bool,
     input: TextAreaInput,
-    min_height: i32,
-    dec: String,
-    hex: String,
-    json: Option<serde_json::Value>,
+    output: ParseResult,
 }
 
 impl BlockComponent {
     pub fn new() -> Self {
         Self {
+            min_height: 110,
             initialized: false,
             input: TextAreaInput {
                 value: "".to_string(),
                 height: 0,
             },
-            min_height: 110,
-            dec: String::from(""),
-            hex: String::from(""),
-            json: None,
+            output: ParseResult::NAN,
         }
     }
 
-    fn parse_input(&mut self, full: bool) {
+    fn parse_input(&mut self) {
         let s = self.input.value.replace("\n", "");
+        self.output = parser::parse(&s);
 
         if self.input.height > 136 {
             self.min_height = self.input.height;
         }
-
-        let p = parser::parse(&s);
-        if p.is_json() {
-            self.json = p.get_json();
-        } else {
-            self.dec = p.to_string();
-            self.hex = p.to_hex_string(full);
-            self.json = None;
-        }
     }
 
     fn is_json(&self) -> bool {
-        self.json.is_some()
+        self.output.is_json()
+    }
+
+    fn is_str(&self) -> bool {
+        self.output.is_str()
     }
 }
 
@@ -87,7 +80,7 @@ impl Component for BlockComponent {
             Msg::InputChanged(input) => {
                 self.initialized = true;
                 self.input = input;
-                self.parse_input(ctx.props().toggle);
+                self.parse_input();
                 // Manually resize textarea to avoid scrollbars
                 if let Some(textarea) = ctx.props().textarea_ref.cast::<HtmlTextAreaElement>() {
                     match textarea.remove_attribute("style") {
@@ -160,51 +153,62 @@ impl Component for BlockComponent {
                         }>
                     </textarea>
                 </div>
-            if self.is_json() {
+                if self.is_json() {
                 <div class="col-span-2 overflow-x-auto text-right peer-focus-within/input:text-emerald-400">
                     <p class="pt-0 text-gray-400">{ "json: " }</p>
-                    <div class="w-full text-left"><JsonComponent value={self.json.clone().unwrap()}/></div>
+                    <div class="w-full text-left"><JsonComponent
+                         value={self.output.get_json().unwrap()}/></div>
                 </div>
-            }
-            else if ctx.props().toggle {
-                <div class="col-span-2 resize-none overflow-y-auto text-right peer-focus-within/input:text-emerald-400">
-                    <p class="pt-0 text-gray-400">{ "hex: " }</p>
+                }
+                else if self.is_str() {
+                <div class="col-span-2 overflow-x-auto text-right peer-focus-within/input:text-emerald-400">
+                    <p class="pt-0 text-gray-400">{ "text: " }</p>
                     <div class="whitespace-normal break-all"> {
-                        for self.hex.split('\n').into_iter().map(|v| {
+                        for self.output.get_string().unwrap().split('\n').into_iter().map(|v| {
                             html!{
                                 <div class="w-full">{ v }</div>
                             } })
                         }
                     </div>
                 </div>
-            } else {
+                } else if ctx.props().toggle {
+                    <div class="col-span-2 resize-none overflow-y-auto text-right peer-focus-within/input:text-emerald-400">
+                        <p class="pt-0 text-gray-400">{ "hex: " }</p>
+                        <div class="whitespace-normal break-all"> {
+                            for self.output.to_hex_string(true).split('\n').into_iter().map(|v| {
+                                html!{
+                                    <div class="w-full">{ v }</div>
+                                } })
+                            }
+                        </div>
+                    </div>
+                } else {
                     <div class="col-span-1 overflow-x-auto text-right peer-focus-within/input:text-amber-300 pl-2">
                         <p class="pt-0 text-gray-400">{ "dec: " }</p>
                         <div class="whitespace-normal break-all"> {
-                            for self.dec.split('\n').into_iter().map(|v| {
+                            for self.output.to_string().split('\n').into_iter().map(|v| {
                                 html!{
                                     <div class="w-full ">{ v }</div>
                                 } })
                             }
                         </div>
                     </div>
-                <div class="col-span-1 overflow-x-auto text-right peer-focus-within/input:text-emerald-400">
-                    <p class="pt-0 text-gray-400">{ "hex: " }</p>
-                    <div class="whitespace-normal break-all pl-1"> {
-                        for self.hex.split('\n').into_iter().map(|v| {
-                            html!{
-                                <div class="w-full ">{ v }</div>
-                            } })
-                        }
-                </div>
-                </div>
-            }
+                    <div class="col-span-1 overflow-x-auto text-right peer-focus-within/input:text-emerald-400">
+                        <p class="pt-0 text-gray-400">{ "hex: " }</p>
+                        <div class="whitespace-normal break-all pl-1"> {
+                            for self.output.to_hex_string(false).split('\n').into_iter().map(|v| {
+                                html!{
+                                    <div class="w-full ">{ v }</div>
+                                } })
+                            }
+                        </div>
+                    </div>
+                }
             </div>
         }
     }
 
-    fn changed(&mut self, ctx: &Context<Self>, _old_props: &Self::Properties) -> bool {
-        self.parse_input(ctx.props().toggle);
+    fn changed(&mut self, _ctx: &Context<Self>, _old_props: &Self::Properties) -> bool {
         true
     }
 }
