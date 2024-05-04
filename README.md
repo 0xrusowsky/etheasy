@@ -50,7 +50,7 @@ unchecked(format_units(2**256, 4))        // composed unchecked operation ('0.00
 
 ### 🛠️ EVM-Related Operations
 
-Support common EVM-related operations to work with addresses, hashing, base64 encoding, or function selectors.
+Support common EVM-related operations to work with addresses, calldata, hashing, abi encoding, function selectors or base64 encoding.
 
 ```rs
 address(0)                                // zero address (0x0000000000000000000000000000000000000000)
@@ -59,6 +59,24 @@ selector("transfer(address,uint256)")     // 4-bytes function selector (0xa9059c
 keccak256("hello world")                  // keccak hash (0x47173285a8d7341e5e972fc677286384f802f8ef42a5ec5f03bbfa254cb01fad)
 b64_encode("hello world")                 // base64 encode ('aGVsbG8gd29ybGQ=')
 b64_decode("aGVsbG8gd29ybGQ=")            // base64 decode ('hello world')
+
+abi_encode(                               // abi encode without function selector:
+  "transfer(address, uint256)",           //   0x000000000000000000000000d8da6bf26964af9d7eed9e03e53415d37aa9604
+  "0xd8da6bf2..7aa96045, 1")              //   50000000000000000000000000000000000000000000000000000000000000001
+
+abi_encode_with_selector(                 // abi encode with the function selector:
+  "transfer(address, uint256)",           //   0xa9059cbb000000000000000000000000d8da6bf26964af9d7eed9e03e53415d37aa
+  "0xd8da6bf2..7aa96045, 1")              //   960450000000000000000000000000000000000000000000000000000000000000001
+
+abi_decode(                               // abi decode (uses selector of the calldata):
+  "transfer(address, uint256)",           //   fn_selector: "0xa9059cbb",
+  "0xa9059cbb000000000000..0000001"       //   address: "0xd8dA6BF2..7aA96045",
+)                                         //   uint256: "0x1",
+
+debug("0xa9059cbb000000000000..0000001")  // pretty prints calldata in 32-byte words + function selector:
+                                          //   a9059cbb
+                                          //   000000000000000000000000d8da6bf26964af9d7eed9e03e53415d37aa96045
+                                          //   0000000000000000000000000000000000000000000000000000000000000001
 ```
 
 ### ✏️ String Operations
