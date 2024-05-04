@@ -48,7 +48,7 @@ impl Component for App {
             <div class="w-full">
             // navbar
             <a href="#landing">
-            <div class="w-full" style="position: fixed; top: 0; z-index: 10; background: inherit;">
+            <div class="w-full bg-gray-100 dark:bg-dark-primary" style="position: fixed; top: 0; z-index: 10;">
             <div class="max-w-md md:max-w-2xl lg:max-w-4xl 2xl:max-w-6xl 4xl:max-w-8xl mx-auto">
             <div class="flex items-center justify-between px-0 py-4 border-b border-gray-200 dark:border-gray-700">
                 <h1 class="text-2xl font-extrabold tracking-tight text-gray-800 dark:text-gray-200">
@@ -112,7 +112,21 @@ impl Component for App {
             </div>
         </div>
         // playground
-        <div id="playground"> <FrameComponent /> </div>
+        <div class="px-3 bg-gray-100 dark:bg-dark-primary md:px-0">
+        <div class="min-h-screen flex flex-col items-center justify-center w-full space-y-8">
+        <div class="w-full max-w-md md:max-w-2xl lg:max-w-4xl 2xl:max-w-6xl 4xl:max-w-8xl">
+            // frame
+            <div id="playground"> <FrameComponent /> </div>
+            // footer
+            <div class="text-sm text-gray-600 dark:text-gray-400 flex flex-col sm:flex-row justify-center items-center space-x-2 py-3">
+                    <p> {"© 2024 etheasy"} </p>
+                    <p class="hidden sm:inline px-1"> {"|"} </p>
+                    <a class="transition-colors duration-200 hover:scale-105 hover:text-gray-900 dark:hover:text-gray-100"
+                       href="https://0xrusowsky.github.io/blog/"> {"0xrusowsky"} </a>
+            </div>
+        </div>
+        </div>
+        </div>
         </div>
         }
     }
