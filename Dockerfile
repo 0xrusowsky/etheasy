@@ -26,4 +26,10 @@ RUN tailwindcss -i ./src/tailwind.css -o ./dist/tailwind.css --minify
 # Build the final nginx image with the compiled assets
 FROM nginx:alpine as release
 COPY ./nginx.conf /etc/nginx/nginx.conf
-COPY --from=builder /app/dist/ /usr/share/nginx/html
+# Use cache busting to ensure latest assets are always loaded
+ARG CACHEBUST=$(date +%s)
+COPY --from=builder /app/dist/ /usr/share/nginx/html/${CACHEBUST}
+WORKDIR /usr/share/nginx/html
+RUN ln -s ${CACHEBUST} latest
+RUN mv latest/* . && rm -rf latest
+RUN pwd && ls -al
