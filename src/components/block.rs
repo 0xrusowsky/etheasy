@@ -15,6 +15,7 @@ pub enum Msg {
 #[derive(Properties, PartialEq)]
 pub struct BlockProps {
     pub on_enter: Callback<()>,
+    pub on_result: Callback<ParseResult>,
     pub textarea_ref: NodeRef,
     // app state
     pub toggle: bool,
@@ -101,6 +102,7 @@ impl Component for BlockComponent {
                 if e.key() == "Enter" && !e.shift_key() && has_content {
                     e.prevent_default();
                     ctx.props().on_enter.emit(());
+                    ctx.props().on_result.emit(self.output.clone());
                 }
                 false
             }
@@ -134,7 +136,7 @@ impl Component for BlockComponent {
         });
 
         html! {
-            <div class="text-gray-800 dark:text-gray-200 grid h-full grid-cols-3 p-4 pb-0 border-b-2 border-gray-100/25 dark:border-b-4 dark:border-dark-primary">
+            <div class="w-full text-gray-800 dark:text-gray-200 grid h-full grid-cols-3 p-4 pb-0 border-b-2 border-gray-100/25 dark:border-b-4 dark:border-dark-primary">
                 <div class="peer/input col-span-1 pt-0 pr-2">
                     <p class="mt-0 text-gray-400">{ "input:" }</p>
                     <textarea ref={ctx.props().textarea_ref.clone()}

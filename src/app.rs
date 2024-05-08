@@ -114,7 +114,7 @@ impl Component for App {
         // playground
         <div class="px-3 bg-gray-100 dark:bg-dark-primary md:px-0">
         <div class="min-h-screen flex flex-col items-center justify-center w-full space-y-8">
-        <div class="w-full max-w-md md:max-w-2xl lg:max-w-4xl 2xl:max-w-6xl 4xl:max-w-8xl">
+        <div class="w-full max-w-md md:max-w-2xl lg:max-w-4xl 2xl:max-w-6xl 4xl:max-w-8xl 8xl:max-w-10xl">
             // frame
             <div id="playground"> <FrameComponent /> </div>
             // footer

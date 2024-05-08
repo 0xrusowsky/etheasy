@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 use alloy_core::primitives::{B256, U256};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ParseResult {
     Value(U256),
     String(String),
@@ -67,6 +67,12 @@ impl ParseResult {
             ParseResult::Json(j) => j.to_string(),
             ParseResult::NAN => "-".to_string(),
         }
+    }
+}
+
+impl Default for ParseResult {
+    fn default() -> Self {
+        ParseResult::NAN
     }
 }
 
