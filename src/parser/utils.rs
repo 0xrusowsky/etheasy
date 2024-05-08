@@ -1,3 +1,5 @@
+use std::i32;
+
 use alloy_core::primitives::{Address, B256, U256};
 
 pub fn trim_quotes(input: &str) -> String {
@@ -117,4 +119,27 @@ pub fn split_top_level(input: &str) -> Vec<String> {
     }
 
     result
+}
+
+pub fn get_v3_quote_from_tick(tick: i32, is_token0: bool) -> U256 {
+    let sqrt_ratio_x96 = uniswap_v3_math::tick_math::get_sqrt_ratio_at_tick(tick)
+        .unwrap()
+        .to_string()
+        .parse::<U256>()
+        .unwrap();
+    if sqrt_ratio_x96 <= i128::MAX.to_string().parse::<U256>().unwrap() {
+        let ratio_x192 = sqrt_ratio_x96 * sqrt_ratio_x96;
+        if is_token0 {
+            U256::from(ratio_x192) * U256::from(1e18) / (U256::from(1) << U256::from(192))
+        } else {
+            (U256::from(1) << U256::from(192)) * U256::from(1e18) / U256::from(ratio_x192)
+        }
+    } else {
+        let ratio_x128 = sqrt_ratio_x96 * sqrt_ratio_x96 / (U256::from(1) << U256::from(64));
+        if is_token0 {
+            U256::from(ratio_x128) * U256::from(1e18) / (U256::from(1) << U256::from(128))
+        } else {
+            (U256::from(1) << U256::from(128)) * U256::from(1e18) / U256::from(ratio_x128)
+        }
+    }
 }

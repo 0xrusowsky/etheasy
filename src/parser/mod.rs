@@ -381,17 +381,44 @@ fn utility_fn_args(input: &str, mut pairs: Pairs<Rule>, unchecked: bool) -> Pars
             _ => ParseResult::NAN,
         }
     } else {
-        match eval(value_inner, unchecked) {
-            ParseResult::Value(value) => {
-                let args = pairs.next().unwrap().as_str();
-                match input {
-                    "root" => value.root(args.parse().unwrap_or(2)).into(),
-                    "format_units" => format_units(value, args).ok().into(),
-                    "unix" => format_unix(value, Some(args.to_string())),
-                    _ => ParseResult::NAN,
-                }
+        if value_str.starts_with("-") {
+            let args = pairs.next().unwrap().as_str();
+            match input {
+                "v3_price_from_tick" => match value_str.to_string().parse::<i32>() {
+                    Ok(tick) => match args.parse::<bool>() {
+                        Ok(is_token0) => {
+                            let quote = utils::get_v3_quote_from_tick(tick, is_token0);
+                            format_ether(quote).into()
+                        }
+                        Err(_) => ParseResult::NAN,
+                    },
+                    Err(_) => ParseResult::NAN,
+                },
+                _ => ParseResult::NAN,
             }
-            _ => ParseResult::NAN,
+        } else {
+            match eval(value_inner, unchecked) {
+                ParseResult::Value(value) => {
+                    let args = pairs.next().unwrap().as_str();
+                    match input {
+                        "root" => value.root(args.parse().unwrap_or(2)).into(),
+                        "format_units" => format_units(value, args).ok().into(),
+                        "unix" => format_unix(value, Some(args.to_string())),
+                        "v3_price_from_tick" => match value.to_string().parse::<i32>() {
+                            Ok(tick) => match args.parse::<bool>() {
+                                Ok(is_token0) => {
+                                    let quote = utils::get_v3_quote_from_tick(tick, is_token0);
+                                    format_ether(quote).into()
+                                }
+                                Err(_) => ParseResult::NAN,
+                            },
+                            Err(_) => ParseResult::NAN,
+                        },
+                        _ => ParseResult::NAN,
+                    }
+                }
+                _ => ParseResult::NAN,
+            }
         }
     }
 }
