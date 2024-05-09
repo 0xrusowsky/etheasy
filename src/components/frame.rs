@@ -1,4 +1,10 @@
-use crate::{components::block::BlockComponent, parser::types::result::ParseResult};
+use crate::{
+    components::{
+        block::{BlockComponent, BlockState},
+        block_label::LabelComponent,
+    },
+    parser::types::result::ParseResult,
+};
 
 use web_sys::HtmlTextAreaElement;
 use yew::{prelude::*, Component};
@@ -11,33 +17,13 @@ pub enum Msg {
     FocusBlock,
     // block state
     UpdateBlock(usize, ParseResult),
+    RenameBlock(usize, String),
+    // FinishBlock(KeyboardEvent),
 }
 
 #[derive(Properties, PartialEq)]
 pub struct Props {
     pub on_view_change: Callback<()>,
-}
-
-#[derive(Debug)]
-pub struct BlockState {
-    id: String,
-    result: ParseResult,
-}
-
-impl BlockState {
-    pub fn from_id(id: usize) -> Self {
-        Self {
-            id: format!("block_{}", id),
-            result: ParseResult::NAN,
-        }
-    }
-
-    pub fn from_name(id: String) -> Self {
-        Self {
-            id,
-            result: ParseResult::NAN,
-        }
-    }
 }
 
 #[derive(Default, Debug)]
@@ -46,6 +32,8 @@ pub struct FrameComponent {
     blocks: Vec<BlockState>,
     focus: usize,
     focus_ref: NodeRef,
+    focus_on_render: bool,
+    label_change: bool,
 }
 
 impl FrameComponent {
@@ -60,10 +48,6 @@ impl FrameComponent {
     fn num_blocks(&self) -> usize {
         self.blocks.len()
     }
-
-    fn get_block(&self, id: usize) -> Option<&BlockState> {
-        self.blocks.get(id)
-    }
 }
 
 impl Component for FrameComponent {
@@ -76,6 +60,8 @@ impl Component for FrameComponent {
             blocks: vec![BlockState::from_id(0)],
             focus: 0,
             focus_ref: NodeRef::default(),
+            focus_on_render: true,
+            label_change: false,
         }
     }
 
@@ -84,16 +70,27 @@ impl Component for FrameComponent {
             Msg::AddBlock => {
                 self.blocks.push(BlockState::from_id(self.num_blocks()));
                 self.focus = self.last_block();
+                self.focus_on_render = true;
             }
             Msg::FocusBlock => {
                 self.focus = self.last_block();
+                self.focus_on_render = true;
             }
             Msg::Toggle => {
                 self.toggle = !self.is_toggled();
             }
-            Msg::UpdateBlock(id, result) => {
-                if let Some(_) = self.get_block(id) {
-                    self.blocks[id].result = result;
+            Msg::UpdateBlock(index, result) => {
+                if let Some(block) = self.blocks.get_mut(index) {
+                    block.update_result(result);
+                }
+                self.focus_on_render = false;
+                self.label_change = !self.label_change;
+            }
+            Msg::RenameBlock(index, id) => {
+                if let Some(block) = self.blocks.get_mut(index) {
+                    block.update_id(id.clone());
+                    self.focus_on_render = false;
+                    self.label_change = !self.label_change;
                 }
             }
         };
@@ -113,19 +110,22 @@ impl Component for FrameComponent {
                         </label>
                     </div>
                     // code playground
-                    <div class="subpixel-antialiased dark:bg-dark-code rounded-md shadow-2xl">
+                    <div class="subpixel-antialiased bg-gray-900 dark:bg-dark-code rounded-md shadow-2xl">
                     {
                         for (0..self.num_blocks()).rev().map(|index| {
                             html! {
-                                <div class="flex text-gray-800 dark:text-gray-200">
-                                    <div class="max-sz900:hidden absolute left-0 max-w-1/12 whitespace-normal break-all">
-                                        <br/>
-                                        <p class="text-xs text-gray-600/50 dark:text-gray-400/50 pl-4 p-2 border-dashed border-2 border-gray-500/50 border-l-0">
-                                            {&self.get_block(index).unwrap().id}
-                                        </p>
-                                    </div>
+                                <div class="flex">
+                                <LabelComponent block_index={index}
+                                    input_ref={
+                                        if self.focus == index {self.focus_ref.clone()} else {NodeRef::default()}
+                                    }
+                                    on_result={ctx.link().callback(move |result: String| {
+                                        Msg::RenameBlock(index, result)})
+                                    }
+                                    on_enter={ ctx.link().callback(move |_| Msg::FocusBlock) }
+                                />
                                 <BlockComponent key={index}
-                                    block_count={self.last_block()} block_id={index} toggle={self.is_toggled()}
+                                    blocks={self.blocks.clone()} block_index={index} toggle={self.is_toggled()} label_change={self.label_change}
                                     on_enter={
                                         // only trigger AddBlock if Enter is pressed on the last block
                                         if index == self.last_block() {
@@ -148,9 +148,11 @@ impl Component for FrameComponent {
         }
     }
 
-    fn rendered(&mut self, _ctx: &Context<Self>, _first_render: bool) {
-        if let Some(textarea) = self.focus_ref.cast::<HtmlTextAreaElement>() {
-            let _ = textarea.focus();
+    fn rendered(&mut self, _ctx: &Context<Self>, first_render: bool) {
+        if !first_render && self.focus_on_render {
+            if let Some(textarea) = self.focus_ref.cast::<HtmlTextAreaElement>() {
+                let _ = textarea.focus();
+            }
         }
     }
 }
