@@ -1,4 +1,5 @@
 use crate::components::frame::FrameComponent;
+use crate::components::search_menu::SearchMenuComponent;
 use crate::components::theme::ThemeComponent;
 
 use yew::{prelude::*, Component};
@@ -117,6 +118,8 @@ impl Component for App {
         <div class="w-full max-w-md md:max-w-2xl lg:max-w-4xl 2xl:max-w-6xl 4xl:max-w-8xl 8xl:max-w-10xl">
             // frame
             <div id="playground"> <FrameComponent /> </div>
+            // search menu
+            <SearchMenuComponent />
             // footer
             <div class="text-sm text-gray-600 dark:text-gray-400 flex flex-col sm:flex-row justify-center items-center space-x-2 py-3">
                     <p> {"© 2024 etheasy"} </p>
