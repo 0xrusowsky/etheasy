@@ -115,7 +115,6 @@ fn array_to_html(vec: &Vec<Value>, indent: usize) -> Html {
             Value::Object(obj) => {
                 if !obj.is_empty() {
                     let obj_type = obj.iter().next().unwrap().0;
-                    gloo_console::log!(format!("{:#?}", obj));
                     html! {
                     <>
                         <div>{format!("{}{}[]: [", indent_str, obj_type)}</div> <> {

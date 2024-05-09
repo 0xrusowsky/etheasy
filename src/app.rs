@@ -1,7 +1,6 @@
 use crate::components::frame::FrameComponent;
 use crate::components::theme::ThemeComponent;
 
-use web_sys::HtmlElement;
 use yew::{prelude::*, Component};
 
 pub enum Msg {
@@ -41,6 +40,7 @@ impl Component for App {
 
     fn view(&self, ctx: &Context<Self>) -> Html {
         html! {
+        <div class="scroll-smooth">
         <div class={if self.is_dark_mode() { "dark" } else { "" }}>
         // landing
         <div id="landing" ref={self.landing_ref.clone()} class="bg-gray-100 dark:bg-dark-primary"
@@ -51,7 +51,7 @@ impl Component for App {
             <div class="w-full bg-gray-100 dark:bg-dark-primary" style="position: fixed; top: 0; z-index: 10;">
             <div class="max-w-md md:max-w-2xl lg:max-w-4xl 2xl:max-w-6xl 4xl:max-w-8xl mx-auto">
             <div class="flex items-center justify-between px-0 py-4 border-b border-gray-200 dark:border-gray-700">
-                <h1 class="text-2xl font-extrabold tracking-tight text-gray-800 dark:text-gray-200">
+                <h1 class="text-2xl max-sm:text-lg font-extrabold tracking-tight text-gray-800 dark:text-gray-200">
                     {"Ethereum"}<span class="font-normal text-gray-700 dark:text-gray-300">{" development made "}</span>
                     {"easy"}<span class="font-normal text-gray-700 dark:text-gray-300">{"."}</span>
                 </h1>
@@ -79,13 +79,13 @@ impl Component for App {
         // title and button
         <div class="flex-grow flex flex-col justify-between text-gray-800 dark:text-gray-200">
             <div class="flex flex-grow items-center justify-center">
-            <div class="text-lg text-center">
+            <div class="text-lg max-sm:text-sm text-center">
                 <br/>
                 <br/>
-                <h1 class="text-8xl text-center font-extrabold tracking-tight py-8">
+                <h1 class="text-8xl max-sm:text-7xl text-center font-extrabold tracking-tight py-8">
                 {"eth easy!"}
                 </h1>
-                <p class="text-2xl text-center"> {"Easy-to-use, flexible, and blazingly fast toolkit that helps accelerate Ethereum development."} </p>
+                <p class="text-2xl max-sm:text-xl text-center"> {"Easy-to-use, flexible, and blazingly fast toolkit that helps accelerate Ethereum development."} </p>
                 // <p class="text-lg text-center"> {"Ethereum development."} </p>
                 <br/>
                 <br/>
@@ -114,7 +114,7 @@ impl Component for App {
         // playground
         <div class="px-3 bg-gray-100 dark:bg-dark-primary md:px-0">
         <div class="min-h-screen flex flex-col items-center justify-center w-full space-y-8">
-        <div class="w-full max-w-md md:max-w-2xl lg:max-w-4xl 2xl:max-w-6xl 4xl:max-w-8xl">
+        <div class="w-full max-w-md md:max-w-2xl lg:max-w-4xl 2xl:max-w-6xl 4xl:max-w-8xl 8xl:max-w-10xl">
             // frame
             <div id="playground"> <FrameComponent /> </div>
             // footer
@@ -128,13 +128,7 @@ impl Component for App {
         </div>
         </div>
         </div>
-        }
-    }
-
-    fn rendered(&mut self, _ctx: &Context<Self>, first_render: bool) {
-        if first_render {
-            let goto = self.landing_ref.cast::<HtmlElement>().unwrap();
-            goto.scroll_into_view();
+        </div>
         }
     }
 }
