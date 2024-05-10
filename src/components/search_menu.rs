@@ -54,6 +54,8 @@ pub fn search_menu_component() -> Html {
     let search_query = use_state(|| "".to_string());
 
     html! {
+        <div style="min-height: 95vh; display: flex; flex-direction: column;">
+        <div style="min-height: 10vh; display: flex; flex-direction: column;"/>
         <div class="text-gray-400 bg-gray-600 rounded-lg">
             <div class="px-4 pt-4 pb-1"><div class="flex w-full py-2 px-3 bg-gray-500 rounded-md">
                 <svg class="w-4 h-6 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 512 662">
@@ -93,6 +95,7 @@ pub fn search_menu_component() -> Html {
                     }
                 </ul>
             </div>
+        </div>
         </div>
     }
 }

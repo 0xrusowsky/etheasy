@@ -2,20 +2,40 @@ use crate::components::frame::FrameComponent;
 use crate::components::search_menu::SearchMenuComponent;
 use crate::components::theme::ThemeComponent;
 
+use gloo::events::EventListener;
+use web_sys::wasm_bindgen::JsCast;
+use web_sys::{KeyboardEvent, Window};
 use yew::{prelude::*, Component};
 
 pub enum Msg {
     SwitchTheme(bool),
+    CheckForSearchAction(KeyboardEvent),
 }
 
 pub struct App {
     dark_mode: bool,
+    search_mode: bool,
     landing_ref: NodeRef,
+    kbd_listener: Option<EventListener>,
 }
 
 impl App {
     fn is_dark_mode(&self) -> bool {
         self.dark_mode
+    }
+
+    fn set_kbd_listener(&mut self, window: &Window, ctx: &Context<Self>) {
+        let link = ctx.link().clone();
+        let handler = move |event: KeyboardEvent| {
+            link.send_message(Msg::CheckForSearchAction(event));
+        };
+
+        let listener = EventListener::new(window, "keydown", move |event: &web_sys::Event| {
+            if let Some(keyboard_event) = event.dyn_ref::<web_sys::KeyboardEvent>() {
+                handler(keyboard_event.clone());
+            }
+        });
+        self.kbd_listener = Some(listener);
     }
 }
 
@@ -23,17 +43,36 @@ impl Component for App {
     type Message = Msg;
     type Properties = ();
 
-    fn create(_ctx: &Context<Self>) -> Self {
-        Self {
+    fn create(ctx: &Context<Self>) -> Self {
+        let mut app = Self {
             dark_mode: true,
+            search_mode: false,
             landing_ref: NodeRef::default(),
+            kbd_listener: None,
+        };
+        if let Some(window) = web_sys::window() {
+            app.set_kbd_listener(&window, &ctx);
         }
+        app
     }
 
     fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             Msg::SwitchTheme(dark_mode) => {
                 self.dark_mode = dark_mode;
+            }
+            Msg::CheckForSearchAction(e) => {
+                if !self.search_mode {
+                    if (e.meta_key() || e.ctrl_key()) && e.key().to_lowercase() == "k" {
+                        gloo_console::log!("bingo");
+                        self.search_mode = true;
+                    }
+                } else {
+                    if e.key() == "Escape" {
+                        gloo_console::log!("esc");
+                        self.search_mode = false;
+                    }
+                }
             }
         }
         true
@@ -116,10 +155,7 @@ impl Component for App {
         <div class="px-3 bg-gray-100 dark:bg-dark-primary md:px-0">
         <div class="min-h-screen flex flex-col items-center justify-center w-full space-y-8">
         <div class="w-full max-w-md md:max-w-2xl lg:max-w-4xl 2xl:max-w-6xl 4xl:max-w-8xl 8xl:max-w-10xl">
-            // frame
-            <div id="playground"> <FrameComponent /> </div>
-            // search menu
-            <SearchMenuComponent />
+            <div id="playground"> if self.search_mode { <SearchMenuComponent /> } else { <FrameComponent /> } </div>
             // footer
             <div class="text-sm text-gray-600 dark:text-gray-400 flex flex-col sm:flex-row justify-center items-center space-x-2 py-3">
                     <p> {"© 2024 etheasy"} </p>
