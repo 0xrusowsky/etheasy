@@ -71,7 +71,7 @@ impl Component for LabelComponent {
         html! {
             <form class="max-[900px]:hidden absolute left-0 w-1/12">
                 <br/>
-                <input class=" break-all text-xs w-full bg-gray-200 dark:bg-inherit dark:outline-gray-50 outline-offset-2 text-gray-600/50 placeholder:text-gray-600/50 focus:text-gray-800 focus:dark:text-gray-50 placeholder:dark:text-gray-200/50 dark:text-gray-200/40 pl-4 p-2 border-dashed border-2 dark:border-gray-200/40 border-gray-600/40 border-l-0"
+                <input class=" break-all text-xs w-full bg-gray-200 dark:bg-inherit dark:outline-gray-50 outline-offset-2 text-gray-600/50 placeholder:text-gray-600/50 focus:text-gray-800 focus:dark:text-gray-50 placeholder:dark:text-gray-200/50 dark:text-gray-200/40 pl-4 p-2 border-dashed border-2 dark:border-gray-200/40 border-gray-600/40 border-l-0 dark:focus:border-0"
                     placeholder={format!("block_{}", ctx.props().block_index)}
                     onkeydown={on_key_down}
                     oninput={on_input}

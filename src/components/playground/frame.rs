@@ -116,7 +116,7 @@ impl Component for FrameComponent {
                         </label>
                     </div>
                     // code playground
-                    <div class="subpixel-antialiased bg-gray-900 dark:bg-dark-code rounded-md shadow-2xl">
+                    <div class="subpixel-antialiased bg-gray-900 dark:bg-dark-code rounded-md shadow-2xl dark:shadow-gray-50/5">
                     {
                         for (0..self.num_blocks()).rev().map(|index| {
                             html! {

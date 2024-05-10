@@ -42,16 +42,16 @@ impl Component for SearchCardComponent {
     fn view(&self, ctx: &Context<Self>) -> Html {
         let item = &ctx.props().item;
         let child_focus = if self.is_focused {
-            "pr-2 text-emerald-400/50"
+            "pr-2 text-emerald-400/70"
         } else {
-            "pr-2 text-gray-400/60"
+            "pr-2 dark:text-gray-300/50 text-gray-200/50"
         };
 
         html! {
             <li tabindex={ctx.props().card_id.to_string()} ref={ctx.props().focus_ref.clone()}
                 onblur={ctx.link().callback(|_| Msg::Blur)}
                 onfocus={ctx.link().callback(|_| Msg::Focus)}
-                class="text-sm px-6 py-2 border-t-2 border-gray-400 focus:text-gray-50 text-gray-400/80 focus:bg-gray-600 ring-0 outline-0"
+                class="text-sm px-6 py-2 border-t-2 border-gray-400 focus:text-gray-50 text-gray-200/60 focus:bg-gray-600 dark:focus:bg-gray-500 ring-0 outline-0"
             >
             <div class="flex">
                 <p class={child_focus}>{"command:"}</p>

@@ -86,7 +86,7 @@ impl BlockComponent {
         let s = self.input.value.replace("\n", "");
         self.output = parser::parse(&s, blocks);
 
-        if self.input.height > 136 {
+        if self.input.height > 110 {
             self.min_height = self.input.height;
         }
     }
@@ -166,7 +166,7 @@ impl Component for BlockComponent {
             let input: HtmlTextAreaElement = e.target_unchecked_into::<HtmlTextAreaElement>();
             Msg::InputChanged(TextAreaInput {
                 value: input.value(),
-                height: input.scroll_height(),
+                height: input.scroll_height() + 10,
             })
         });
         let block_class = format!("{} {}",

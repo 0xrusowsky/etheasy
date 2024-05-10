@@ -147,25 +147,25 @@ impl Component for SearchMenuComponent {
 
         html! {
             <div onkeydown={on_key_down} style="min-height: 95vh; display: flex; flex-direction: column;">
-            <div style="min-height: 10vh; display: flex; flex-direction: column;"/>
-            <div class="text-gray-400 bg-gray-600 rounded-lg">
-                <div class="px-4 pt-4 pb-1"><div class="flex w-full py-2 px-3 bg-gray-500 rounded-md">
-                    <svg class="w-4 h-6 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 512 662">
-                        <g transform="translate(0, 75)"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352a144 144 0 1 0 0-288 144 144 0 1 0 0 288z"/></g>
-                    </svg>
-                    <input type="text" class="pl-2.5 w-full bg-inherit"
-                        placeholder="Search commands..."
-                        ref={if self.focus_index.is_none() {self.focus_ref.clone()} else {NodeRef::default()}}
-                        oninput={ctx.link().callback(move |e: InputEvent| {
-                            let input: HtmlInputElement = e.target_unchecked_into();
-                            Msg::SearchQuery(input.value())}
-                        )}
-                    />
-                </div></div>
-                <div class="pt-2">
-                    <ul class="py-1"> { for filtered_cards.into_iter().enumerate().map(|(index, card)| command_card(index, card)) } </ul>
+                <div style="min-height: 10vh; display: flex; flex-direction: column;"/>
+                <div class="text-gray-400 bg-gray-500/90 dark:bg-gray-400/80 rounded-lg">
+                    <div class="px-4 pt-4 pb-1"><div class="flex w-full py-2 px-3 dark:bg-dark-gray350 bg-gray-400 rounded-md">
+                        <svg class="w-4 h-6 text-gray-100" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 512 662">
+                            <g transform="translate(0, 75)"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352a144 144 0 1 0 0-288 144 144 0 1 0 0 288z"/></g>
+                        </svg>
+                        <input type="text" class="pl-2.5 w-full text-gray-100 font-semibold placeholder:text-gray-100/60 dark:bg-dark-gray350 bg-gray-400 outline-none"
+                            placeholder="Search commands..."
+                            ref={if self.focus_index.is_none() {self.focus_ref.clone()} else {NodeRef::default()}}
+                            oninput={ctx.link().callback(move |e: InputEvent| {
+                                let input: HtmlInputElement = e.target_unchecked_into();
+                                Msg::SearchQuery(input.value())}
+                            )}
+                        />
+                    </div></div>
+                    <div class="pt-2">
+                        <ul class="py-1"> { for filtered_cards.into_iter().enumerate().map(|(index, card)| command_card(index, card)) } </ul>
+                    </div>
                 </div>
-            </div>
             </div>
         }
     }
