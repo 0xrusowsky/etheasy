@@ -4,19 +4,22 @@ use crate::components::theme::ThemeComponent;
 
 use gloo::events::EventListener;
 use web_sys::wasm_bindgen::JsCast;
-use web_sys::{KeyboardEvent, Window};
+use web_sys::{HtmlElement, KeyboardEvent, Window};
 use yew::{prelude::*, Component};
 
 pub enum Msg {
     SwitchTheme(bool),
     CheckForSearchAction(KeyboardEvent),
+    GoToPlayground,
 }
 
 pub struct App {
+    goto_pg: bool,
     dark_mode: bool,
     work_mode: bool,
     search_mode: bool,
     landing_ref: NodeRef,
+    playgroundg_ref: NodeRef,
     kbd_listener: Option<EventListener>,
 }
 
@@ -46,10 +49,12 @@ impl Component for App {
 
     fn create(ctx: &Context<Self>) -> Self {
         let mut app = Self {
+            goto_pg: false,
             dark_mode: true,
             work_mode: false,
             search_mode: false,
             landing_ref: NodeRef::default(),
+            playgroundg_ref: NodeRef::default(),
             kbd_listener: None,
         };
         if let Some(window) = web_sys::window() {
@@ -72,6 +77,10 @@ impl Component for App {
                 } else {
                     return false;
                 }
+            }
+            Msg::GoToPlayground => {
+                self.goto_pg = true;
+                self.work_mode = true;
             }
         }
         true
@@ -157,7 +166,7 @@ impl Component for App {
         <div class="w-full max-w-md md:max-w-2xl lg:max-w-4xl 2xl:max-w-6xl 4xl:max-w-8xl 8xl:max-w-10xl">
             <div id="playground">
                 if self.search_mode {<SearchMenuComponent/>}
-                <FrameComponent search_mode={self.search_mode}/>
+                <FrameComponent search_mode={self.search_mode} focus_ref={self.playgroundg_ref.clone()}/>
             </div>
             // footer
             <div class="text-sm text-gray-600 dark:text-gray-400 flex flex-col sm:flex-row justify-center items-center space-x-2 py-3">

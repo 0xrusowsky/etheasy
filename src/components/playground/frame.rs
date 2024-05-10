@@ -24,7 +24,6 @@ pub struct FrameComponent {
     toggle: bool,
     blocks: Vec<BlockState>,
     focus: usize,
-    focus_ref: NodeRef,
     focus_on_render: bool,
     label_change: bool,
 }
@@ -32,6 +31,7 @@ pub struct FrameComponent {
 #[derive(Properties, PartialEq)]
 pub struct FrameProps {
     pub search_mode: bool,
+    pub focus_ref: NodeRef,
 }
 
 impl FrameComponent {
@@ -57,7 +57,6 @@ impl Component for FrameComponent {
             toggle: false,
             blocks: vec![BlockState::from_id(0)],
             focus: 0,
-            focus_ref: NodeRef::default(),
             focus_on_render: true,
             label_change: false,
         }
@@ -99,14 +98,15 @@ impl Component for FrameComponent {
 
     fn view(&self, ctx: &Context<Self>) -> Html {
         let hide = if ctx.props().search_mode {
-            "hidden"
+            gloo_console::log!("search mode, should hide frame");
+            "hidden opacity-0"
         } else {
             ""
         };
         html! {
             <div class={hide}>
             <div style="min-height: 95vh; display: flex; flex-direction: column;">
-                <div style="min-height: 3vh; display: flex; flex-direction: column;"/>
+                <div style="min-height: 5vh; display: flex; flex-direction: column;"/>
                 <div class="font-mono text-xs md:text-sm">
                     // full evm word (bytes32) checkbox
                     <div class="form-control text-gray-600 dark:text-gray-400 pt-10 pb-2 flex justify-end">
@@ -123,7 +123,7 @@ impl Component for FrameComponent {
                                 <div class="flex">
                                 <LabelComponent block_index={index}
                                     input_ref={
-                                        if self.focus == index {self.focus_ref.clone()} else {NodeRef::default()}
+                                        if self.focus == index {ctx.props().focus_ref.clone()} else {NodeRef::default()}
                                     }
                                     on_result={ctx.link().callback(move |result: String| {
                                         Msg::RenameBlock(index, result)})
@@ -142,7 +142,7 @@ impl Component for FrameComponent {
                                     }
                                     on_result={ctx.link().callback(move |result| Msg::UpdateBlock(index, result))}
                                     textarea_ref={
-                                        if self.focus == index {self.focus_ref.clone()} else {NodeRef::default()}
+                                        if self.focus == index {ctx.props().focus_ref.clone()} else {NodeRef::default()}
                                     }
                                 /></div>
                             }
@@ -157,14 +157,14 @@ impl Component for FrameComponent {
 
     fn rendered(&mut self, ctx: &Context<Self>, first_render: bool) {
         if !first_render && self.focus_on_render {
-            if let Some(textarea) = self.focus_ref.cast::<HtmlTextAreaElement>() {
+            if let Some(textarea) = ctx.props().focus_ref.cast::<HtmlTextAreaElement>() {
                 let _ = textarea.focus();
             }
         }
     }
 
     fn changed(&mut self, ctx: &Context<Self>, old_props: &Self::Properties) -> bool {
-        if !ctx.props().search_mode && old_props.search_mode {
+        if ctx.props().search_mode != old_props.search_mode {
             self.focus_on_render = true;
             return true;
         }
