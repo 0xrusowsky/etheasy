@@ -2,7 +2,7 @@
 mod convert_chart;
 pub mod types;
 pub mod utils;
-use super::components::block::BlockState;
+use crate::components::playground::block::BlockState;
 use convert_chart::{convert, UnitType};
 use types::{abi::*, result::*};
 use utils::*;
