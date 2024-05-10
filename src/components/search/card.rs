@@ -1,6 +1,6 @@
 use yew::prelude::*;
 
-use super::menu::SearchItemData;
+use super::docs::SearchItemData;
 
 pub enum Msg {
     Focus,
@@ -51,7 +51,7 @@ impl Component for SearchCardComponent {
             <li tabindex={ctx.props().card_id.to_string()} ref={ctx.props().focus_ref.clone()}
                 onblur={ctx.link().callback(|_| Msg::Blur)}
                 onfocus={ctx.link().callback(|_| Msg::Focus)}
-                class="text-sm px-6 py-2 border-t-2 border-gray-400 focus:text-gray-50 text-gray-200/60 focus:bg-gray-600 dark:focus:bg-gray-500 ring-0 outline-0"
+                class="text-sm px-6 py-2 border-t-2 border-gray-400 focus:text-gray-50 text-gray-200/60 focus:bg-gray-700 ring-0 outline-0"
             >
             <div class="flex">
                 <p class={child_focus}>{"command:"}</p>

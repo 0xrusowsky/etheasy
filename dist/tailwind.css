@@ -857,8 +857,8 @@ video {
   background-color: rgb(156 163 175 / var(--tw-bg-opacity));
 }
 
-.bg-gray-500\/90 {
-  background-color: rgb(107 114 128 / 0.9);
+.bg-gray-600\/90 {
+  background-color: rgb(75 85 99 / 0.9);
 }
 
 .bg-gray-900 {
@@ -1214,12 +1214,12 @@ video {
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.placeholder\:text-gray-100\/60::-moz-placeholder {
-  color: rgb(243 244 246 / 0.6);
+.placeholder\:text-gray-100\/80::-moz-placeholder {
+  color: rgb(243 244 246 / 0.8);
 }
 
-.placeholder\:text-gray-100\/60::placeholder {
-  color: rgb(243 244 246 / 0.6);
+.placeholder\:text-gray-100\/80::placeholder {
+  color: rgb(243 244 246 / 0.8);
 }
 
 .placeholder\:text-gray-600\/50::-moz-placeholder {
@@ -1269,9 +1269,9 @@ video {
   border-width: 0px;
 }
 
-.focus\:bg-gray-600:focus {
+.focus\:bg-gray-700:focus {
   --tw-bg-opacity: 1;
-  background-color: rgb(75 85 99 / var(--tw-bg-opacity));
+  background-color: rgb(55 65 81 / var(--tw-bg-opacity));
 }
 
 .focus\:text-gray-50:focus {
@@ -1338,18 +1338,13 @@ video {
   background-color: rgb(34 40 49 / var(--tw-bg-opacity));
 }
 
-.dark\:bg-dark-gray350:is(.dark *) {
-  --tw-bg-opacity: 1;
-  background-color: rgb(182 188 197 / var(--tw-bg-opacity));
-}
-
 .dark\:bg-dark-primary:is(.dark *) {
   --tw-bg-opacity: 1;
   background-color: rgb(22 24 28 / var(--tw-bg-opacity));
 }
 
-.dark\:bg-gray-400\/80:is(.dark *) {
-  background-color: rgb(156 163 175 / 0.8);
+.dark\:bg-gray-500\/80:is(.dark *) {
+  background-color: rgb(107 114 128 / 0.8);
 }
 
 .dark\:bg-inherit:is(.dark *) {
@@ -1384,8 +1379,8 @@ video {
   color: rgb(156 163 175 / var(--tw-text-opacity));
 }
 
-.dark\:shadow-gray-50\/5:is(.dark *) {
-  --tw-shadow-color: rgb(249 250 251 / 0.05);
+.dark\:shadow-gray-400\/5:is(.dark *) {
+  --tw-shadow-color: rgb(156 163 175 / 0.05);
   --tw-shadow: var(--tw-shadow-colored);
 }
 
@@ -1413,11 +1408,6 @@ video {
 
 .dark\:focus\:border-0:focus:is(.dark *) {
   border-width: 0px;
-}
-
-.dark\:focus\:bg-gray-500:focus:is(.dark *) {
-  --tw-bg-opacity: 1;
-  background-color: rgb(107 114 128 / var(--tw-bg-opacity));
 }
 
 .focus\:dark\:text-gray-50:is(.dark *):focus {

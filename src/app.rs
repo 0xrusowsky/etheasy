@@ -4,17 +4,15 @@ use crate::components::theme::ThemeComponent;
 
 use gloo::events::EventListener;
 use web_sys::wasm_bindgen::JsCast;
-use web_sys::{HtmlElement, KeyboardEvent, Window};
+use web_sys::{KeyboardEvent, Window};
 use yew::{prelude::*, Component};
 
 pub enum Msg {
     SwitchTheme(bool),
     CheckForSearchAction(KeyboardEvent),
-    GoToPlayground,
 }
 
 pub struct App {
-    goto_pg: bool,
     dark_mode: bool,
     work_mode: bool,
     search_mode: bool,
@@ -49,7 +47,6 @@ impl Component for App {
 
     fn create(ctx: &Context<Self>) -> Self {
         let mut app = Self {
-            goto_pg: false,
             dark_mode: true,
             work_mode: false,
             search_mode: false,
@@ -77,10 +74,6 @@ impl Component for App {
                 } else {
                     return false;
                 }
-            }
-            Msg::GoToPlayground => {
-                self.goto_pg = true;
-                self.work_mode = true;
             }
         }
         true
