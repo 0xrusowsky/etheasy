@@ -117,9 +117,8 @@ impl Component for App {
 
     fn view(&self, ctx: &Context<Self>) -> Html {
         html! {
-        <div class="scroll-smooth">
-        <div class={if self.is_dark_mode() { "dark" } else { "" }}>
-            <div class="w-full">
+        <div class={if self.is_dark_mode() { "dark scroll-smooth" } else { "scroll-smooth" }}>
+        <div class="w-full flex flex-col bg-gray-100 dark:bg-dark-primary min-h-screen">
             // navbar
             <button onclick={ctx.link().callback(|_| Msg::GoToLanding)}>
             <div class="w-full bg-gray-100 dark:bg-dark-primary" style="position: fixed; top: 0; z-index: 10;">
@@ -149,7 +148,6 @@ impl Component for App {
             </div>
             </div>
             </button>
-        </div>
         // landing
         if !self.work_mode {
         <div id="landing" ref={self.landing_ref.clone()} class="bg-gray-100 dark:bg-dark-primary"
@@ -190,8 +188,8 @@ impl Component for App {
         </div>
         }
         // playground
-        <div class="px-3 bg-gray-100 dark:bg-dark-primary md:px-0">
-        <div class="min-h-screen flex flex-col items-center justify-center w-full space-y-8">
+        <div ref={self.playgroundg_ref.clone()} class="px-3 bg-gray-100 dark:bg-dark-primary md:px-0 flex flex-col">
+        <div class="flex flex-col items-center justify-center w-full space-y-8">
         <div class="w-full max-w-md md:max-w-2xl lg:max-w-4xl 2xl:max-w-6xl 4xl:max-w-8xl 8xl:max-w-10xl">
             <div id="playground">
                 if self.search_mode {<SearchMenuComponent on_escape={ctx.link().callback(|_| Msg::SearchOff)}/>}

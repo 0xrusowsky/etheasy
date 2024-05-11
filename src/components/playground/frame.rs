@@ -110,7 +110,7 @@ impl Component for FrameComponent {
         html! {
             <div class={hide}>
             <div style="min-height: 95vh; display: flex; flex-direction: column;">
-                <div style="min-height: 5vh; display: flex; flex-direction: column;"/>
+            <div style="min-height: 5vh;"/>
                 <div class="font-mono text-xs md:text-sm">
                     <div class="w-full flex">
                         // search bar
