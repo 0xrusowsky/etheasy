@@ -7,6 +7,12 @@ use yew::prelude::*;
 pub enum Msg {
     SearchQuery(String),
     CheckForArrows(KeyboardEvent),
+    Escape,
+}
+
+#[derive(Properties, PartialEq)]
+pub struct SearchProps {
+    pub on_escape: Callback<()>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -21,7 +27,7 @@ pub struct SearchMenuComponent {
 
 impl Component for SearchMenuComponent {
     type Message = Msg;
-    type Properties = ();
+    type Properties = SearchProps;
 
     fn create(_ctx: &Context<Self>) -> Self {
         Self {
@@ -34,7 +40,7 @@ impl Component for SearchMenuComponent {
         }
     }
 
-    fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
+    fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             Msg::SearchQuery(query) => {
                 self.search_query = query.trim().to_lowercase();
@@ -123,6 +129,14 @@ impl Component for SearchMenuComponent {
                     self.end_index = self.start_index + std::cmp::min(11, self.items);
                 }
             }
+            Msg::Escape => {
+                self.search_query = "".to_string();
+                self.focus_index = None;
+                self.start_index = 0;
+                self.end_index = 11;
+                self.items = SEARCH_ITEMS.len();
+                ctx.props().on_escape.emit(());
+            }
         }
         true
     }
@@ -166,6 +180,10 @@ impl Component for SearchMenuComponent {
                                 Msg::SearchQuery(input.value())}
                             )}
                         />
+                        <button type="button" onclick={ ctx.link().callback(|_| Msg::Escape) }
+                            class="bg-white/0 items-center text-sm text-gray-400 rounded-md ring-1 ring-gray-900/10 shadow-sm py-1 px-3 hover:ring-gray-300 dark:bg-gray-500 dark:highlight-white/5 dark:hover:bg-gray-700 outline-gray-300 outline-offset-4">
+                            <span class="text-gray-100 font-semibold text-center">{"esc"}</span>
+                        </button>
                     </div></div>
                     <div class="pt-2">
                         <ul class="py-1">

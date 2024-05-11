@@ -10,6 +10,8 @@ use yew::{prelude::*, Component};
 pub enum Msg {
     SwitchTheme(bool),
     CheckForSearchAction(KeyboardEvent),
+    SearchOn,
+    SearchOff,
 }
 
 pub struct App {
@@ -74,6 +76,13 @@ impl Component for App {
                 } else {
                     return false;
                 }
+            }
+            Msg::SearchOn => {
+                self.search_mode = true;
+                self.work_mode = true;
+            }
+            Msg::SearchOff => {
+                self.search_mode = false;
             }
         }
         true
@@ -158,8 +167,12 @@ impl Component for App {
         <div class="min-h-screen flex flex-col items-center justify-center w-full space-y-8">
         <div class="w-full max-w-md md:max-w-2xl lg:max-w-4xl 2xl:max-w-6xl 4xl:max-w-8xl 8xl:max-w-10xl">
             <div id="playground">
-                if self.search_mode {<SearchMenuComponent/>}
-                <FrameComponent search_mode={self.search_mode} focus_ref={self.playgroundg_ref.clone()}/>
+                if self.search_mode {<SearchMenuComponent on_escape={ctx.link().callback(|_| Msg::SearchOff)}/>}
+                <FrameComponent
+                    search_mode={self.search_mode}
+                    focus_ref={self.playgroundg_ref.clone()}
+                    on_search={ctx.link().callback(|_| Msg::SearchOn)}
+                />
             </div>
             // footer
             <div class="text-sm text-gray-600 dark:text-gray-400 flex flex-col sm:flex-row justify-center items-center space-x-2 py-3">

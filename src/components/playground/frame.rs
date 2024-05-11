@@ -10,6 +10,7 @@ use yew::{prelude::*, Component};
 pub enum Msg {
     // app config
     Toggle,
+    Search,
     // block config
     AddBlock,
     FocusBlock,
@@ -32,6 +33,7 @@ pub struct FrameComponent {
 pub struct FrameProps {
     pub search_mode: bool,
     pub focus_ref: NodeRef,
+    pub on_search: Callback<()>,
 }
 
 impl FrameComponent {
@@ -62,7 +64,7 @@ impl Component for FrameComponent {
         }
     }
 
-    fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
+    fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             Msg::AddBlock => {
                 self.blocks.push(BlockState::from_id(self.num_blocks()));
@@ -92,13 +94,15 @@ impl Component for FrameComponent {
                     self.label_change = !self.label_change;
                 }
             }
+            Msg::Search => {
+                ctx.props().on_search.emit(());
+            }
         };
         true
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
         let hide = if ctx.props().search_mode {
-            gloo_console::log!("search mode, should hide frame");
             "hidden opacity-0"
         } else {
             ""
@@ -108,12 +112,23 @@ impl Component for FrameComponent {
             <div style="min-height: 95vh; display: flex; flex-direction: column;">
                 <div style="min-height: 5vh; display: flex; flex-direction: column;"/>
                 <div class="font-mono text-xs md:text-sm">
-                    // full evm word (bytes32) checkbox
-                    <div class="form-control text-gray-600 dark:text-gray-400 pt-10 pb-2 flex justify-end">
-                        <label class="cursor-pointer label">
-                        <span>{"Display full EVM words "}</span>
-                        <input type="checkbox" checked={self.is_toggled()} class="checkbox checkbox-accent accent-emerald-400 hover:scale-105" onclick={ ctx.link().callback(|_| Msg::Toggle) }/>
-                        </label>
+                    <div class="w-full flex">
+                        // search bar
+                        <div class="justify-strart items-end pt-9">
+                            <button type="button" onclick={ ctx.link().callback(|_| Msg::Search) }
+                                class="hidden h-7 w-1/8 lg:flex items-center text-sm text-gray-400 rounded-md ring-1 ring-gray-900/10 shadow-sm pl-2 pr-3 hover:ring-gray-400 dark:bg-dark-code bg-gray-200 hover:bg-gray-300/60 hover:text-gray-500 dark:highlight-white/5 dark:hover:bg-gray-700 dark:hover:text-gray-300 outline-gray-300 outline-offset-4">
+                                <svg width="24" height="24" fill="none" aria-hidden="true" class="mr-3 flex-none"><path d="m19 19-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path><circle cx="11" cy="11" r="6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></circle></svg>
+                                {"Command reference"}<span class="ml-auto pl-4 pt-0.5 flex-none text-lg font-semibold">{"⌘"}</span><span class="ml-auto pl-1 pt-0.5 flex-none text-xs font-semibold">{"K"}</span>
+                            </button>
+                        </div>
+                        <div class="flex-grow"/>
+                        // full evm word (bytes32) checkbox
+                        <div class="form-control text-gray-600 dark:text-gray-400 pt-10 pb-3 flex justify-end">
+                            <label class="cursor-pointer label">
+                            <span>{"Display full EVM words "}</span>
+                            <input type="checkbox" checked={self.is_toggled()} class="checkbox checkbox-accent accent-emerald-400 hover:scale-105" onclick={ ctx.link().callback(|_| Msg::Toggle) }/>
+                            </label>
+                        </div>
                     </div>
                     // code playground
                     <div class="subpixel-antialiased bg-gray-900 dark:bg-dark-code rounded-md shadow-2xl dark:shadow-gray-400/5">

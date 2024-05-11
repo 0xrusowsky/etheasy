@@ -129,7 +129,6 @@ impl Component for BlockComponent {
                 true
             }
             Msg::CheckForEnter(e) => {
-                gloo_console::log!("Key pressed:", e.key());
                 let has_content = self.input.value.len() > 0
                     && self.input.value.len() != utils::count_chars(&self.input.value, "\n");
                 if e.key() == "Enter" && !e.shift_key() && has_content {

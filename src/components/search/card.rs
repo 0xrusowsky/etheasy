@@ -51,7 +51,7 @@ impl Component for SearchCardComponent {
             <li tabindex={ctx.props().card_id.to_string()} ref={ctx.props().focus_ref.clone()}
                 onblur={ctx.link().callback(|_| Msg::Blur)}
                 onfocus={ctx.link().callback(|_| Msg::Focus)}
-                class="text-sm px-6 py-2 border-t-2 border-gray-400 focus:text-gray-50 text-gray-200/60 focus:bg-gray-700 ring-0 outline-0"
+                class="text-sm px-6 py-2 border-t-2 border-gray-400 text-gray-200/60 focus:bg-gray-700 focus:text-gray-50 hover:bg-gray-700/50 hover:text-gray-200/80 ring-0 outline-0"
             >
             <div class="flex">
                 <p class={child_focus}>{"command:"}</p>
@@ -63,7 +63,9 @@ impl Component for SearchCardComponent {
                     </div>
                 }
             </div>
-            <div class="flex"><p class={child_focus}>{"description:"}</p><p>{item.desc}</p></div>
+            <div class="flex"><p class={child_focus}>{"desc:"}</p>
+                <div class="flex-col">{ for item.desc.split('\n').map(|line| html! { <p>{line}</p> })}</div>
+            </div>
         </li>
         }
     }

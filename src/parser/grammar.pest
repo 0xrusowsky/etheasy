@@ -62,8 +62,8 @@ WEI = { "wei" | "weis" }
 KILOWEI = { "kilowei" | "kwei" }
 MEGAWEI = { "megawei" | "mwei" }
 GIGAWEI = { "gigawei" | "gwei" }
-MICROETHER = { "microether" | "µeth" }
-MILLIETHER = { "milliether" | "miliether" | "mether" }
+MICROETHER = { "szabo" | "microether" | "µeth" }
+MILLIETHER = { "finney" | "milliether" | "miliether" | "mether" }
 ETHER = { "ether" | ^"eth" }
 
 siunit = { EVMGAS | TIME }
