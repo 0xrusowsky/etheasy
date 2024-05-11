@@ -3,8 +3,9 @@ use crate::components::search::menu::SearchMenuComponent;
 use crate::components::theme::ThemeComponent;
 
 use gloo::events::EventListener;
+use gloo::timers::callback::Timeout;
 use web_sys::wasm_bindgen::JsCast;
-use web_sys::{KeyboardEvent, Window};
+use web_sys::{HtmlElement, KeyboardEvent, Window};
 use yew::{prelude::*, Component};
 
 pub enum Msg {
@@ -12,6 +13,9 @@ pub enum Msg {
     CheckForSearchAction(KeyboardEvent),
     SearchOn,
     SearchOff,
+    LandingOff,
+    GoToLanding,
+    GoToPlayground,
 }
 
 pub struct App {
@@ -21,6 +25,7 @@ pub struct App {
     landing_ref: NodeRef,
     playgroundg_ref: NodeRef,
     kbd_listener: Option<EventListener>,
+    _timeout: Option<Timeout>,
 }
 
 impl App {
@@ -55,6 +60,7 @@ impl Component for App {
             landing_ref: NodeRef::default(),
             playgroundg_ref: NodeRef::default(),
             kbd_listener: None,
+            _timeout: None,
         };
         if let Some(window) = web_sys::window() {
             app.set_kbd_listener(&window, &ctx);
@@ -62,7 +68,7 @@ impl Component for App {
         app
     }
 
-    fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
+    fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             Msg::SwitchTheme(dark_mode) => {
                 self.dark_mode = dark_mode;
@@ -84,17 +90,37 @@ impl Component for App {
             Msg::SearchOff => {
                 self.search_mode = false;
             }
+            Msg::GoToLanding => {
+                self.work_mode = false;
+                if let Some(landing) = self.landing_ref.cast::<HtmlElement>() {
+                    landing.scroll_into_view();
+                }
+            }
+            Msg::LandingOff => {
+                self.work_mode = true;
+            }
+            Msg::GoToPlayground => {
+                if let Some(pg) = self.playgroundg_ref.cast::<HtmlElement>() {
+                    pg.scroll_into_view();
+                }
+                let link = ctx.link().clone();
+                let timeout = Timeout::new(1_000, move || {
+                    // 1sec delay to scroll to playground
+                    link.send_message(Msg::LandingOff);
+                });
+                self._timeout = Some(timeout);
+                return false;
+            }
         }
         true
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
         html! {
-        <div class="scroll-smooth">
-        <div class={if self.is_dark_mode() { "dark" } else { "" }}>
-            <div class="w-full">
+        <div class={if self.is_dark_mode() { "dark scroll-smooth" } else { "scroll-smooth" }}>
+        <div class="w-full flex flex-col bg-gray-100 dark:bg-dark-primary min-h-screen">
             // navbar
-            <a href="#landing">
+            <button onclick={ctx.link().callback(|_| Msg::GoToLanding)}>
             <div class="w-full bg-gray-100 dark:bg-dark-primary" style="position: fixed; top: 0; z-index: 10;">
             <div class="max-w-md md:max-w-2xl lg:max-w-4xl 2xl:max-w-6xl 4xl:max-w-8xl mx-auto">
             <div class="flex items-center justify-between px-0 py-4 border-b border-gray-200 dark:border-gray-700">
@@ -121,8 +147,7 @@ impl Component for App {
             </div>
             </div>
             </div>
-            </a>
-        </div>
+            </button>
         // landing
         if !self.work_mode {
         <div id="landing" ref={self.landing_ref.clone()} class="bg-gray-100 dark:bg-dark-primary"
@@ -146,13 +171,13 @@ impl Component for App {
                 <p> {"Powered by "} </p><a href="https://www.rust-lang.org/" class="font-bold">{"Rust 🦀"}</a><p> {" and "} </p><a href="https://yew.rs/" class="font-bold">{"Yew"}</a><p> {""} </p>
                 </div>
                 <div class="flex items-center text-center justify-center space-x-1">
-                <p> {"with native support for EVM words thanks to "} </p>
-                <a href="https://github.com/alloy-rs" class="font-bold">{"alloy-rs"}</a><p>{" and "} </p> <a href="https://github.com/recmo/uint" class="font-bold">{"ruint."}</a>
+                <p> {"with native support for EVM words"}</p><p class="hidden sm:inline">{"thanks to "} </p>
+                <a href="https://github.com/alloy-rs" class="font-bold hidden sm:inline">{"alloy-rs"}</a><p class="hidden sm:inline">{" and "} </p> <a href="https://github.com/recmo/uint" class="font-bold hidden sm:inline">{"ruint."}</a>
                 </div>
             </div>
             </div>
             <div class="p-4 w-full">
-                <a href="#playground" class="transition-all">
+                <a class="transition-all" onclick={ctx.link().callback(|_| Msg::GoToPlayground)}>
                     <button class="btn mx-auto block hover:font-semibold animate-bounce w-100 h-6">
                         {"Try it out"}
                     </button>
@@ -163,8 +188,8 @@ impl Component for App {
         </div>
         }
         // playground
-        <div class="px-3 bg-gray-100 dark:bg-dark-primary md:px-0">
-        <div class="min-h-screen flex flex-col items-center justify-center w-full space-y-8">
+        <div ref={self.playgroundg_ref.clone()} class="px-3 bg-gray-100 dark:bg-dark-primary md:px-0 flex flex-col">
+        <div class="flex flex-col items-center justify-center w-full space-y-8">
         <div class="w-full max-w-md md:max-w-2xl lg:max-w-4xl 2xl:max-w-6xl 4xl:max-w-8xl 8xl:max-w-10xl">
             <div id="playground">
                 if self.search_mode {<SearchMenuComponent on_escape={ctx.link().callback(|_| Msg::SearchOff)}/>}
