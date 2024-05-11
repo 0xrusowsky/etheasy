@@ -4,6 +4,8 @@ use super::docs::{SearchItemData, SEARCH_ITEMS};
 use web_sys::{HtmlElement, HtmlInputElement, KeyboardEvent};
 use yew::prelude::*;
 
+const ITEMS_PER_PAGE: usize = 8;
+
 pub enum Msg {
     SearchQuery(String),
     CheckForArrows(KeyboardEvent),
@@ -35,7 +37,7 @@ impl Component for SearchMenuComponent {
             focus_ref: NodeRef::default(),
             focus_index: None,
             start_index: 0,
-            end_index: 11,
+            end_index: ITEMS_PER_PAGE + 1,
             items: SEARCH_ITEMS.len(),
         }
     }
@@ -59,23 +61,23 @@ impl Component for SearchMenuComponent {
 
                 self.start_index = 0;
                 self.items = filtered_cards.len();
-                self.end_index = std::cmp::min(11, self.items);
+                self.end_index = std::cmp::min(ITEMS_PER_PAGE, self.items);
             }
             Msg::CheckForArrows(e) => {
                 if (e.meta_key() || e.ctrl_key()) && e.key() == "ArrowDown" {
-                    self.focus_index = Some(std::cmp::min(10, self.items));
-                    self.start_index = std::cmp::max(0, self.items - 11);
+                    self.focus_index = Some(std::cmp::min(ITEMS_PER_PAGE, self.items));
+                    self.start_index = std::cmp::max(0, self.items - (ITEMS_PER_PAGE + 1));
                     self.end_index = self.items;
                 } else if (e.meta_key() || e.ctrl_key()) && e.key() == "ArrowUp" {
                     self.focus_index = Some(0);
                     self.start_index = 0;
-                    self.end_index = std::cmp::min(11, self.items);
+                    self.end_index = std::cmp::min(ITEMS_PER_PAGE + 1, self.items);
                 } else {
                     match e.key().as_str() {
                         "ArrowDown" => {
                             self.start_index = match self.focus_index {
                                 Some(i) => {
-                                    if i == 10 && self.end_index < self.items {
+                                    if i == ITEMS_PER_PAGE && self.end_index < self.items {
                                         self.start_index + 1
                                     } else {
                                         self.start_index
@@ -86,7 +88,7 @@ impl Component for SearchMenuComponent {
                             self.focus_index = match self.focus_index {
                                 Some(i) => {
                                     if self.items != 0 {
-                                        if i < std::cmp::min(10, self.items - 1)
+                                        if i < std::cmp::min(ITEMS_PER_PAGE, self.items - 1)
                                             && self.end_index <= self.items
                                         {
                                             Some(i + 1)
@@ -126,14 +128,15 @@ impl Component for SearchMenuComponent {
                         }
                         _ => (),
                     }
-                    self.end_index = self.start_index + std::cmp::min(11, self.items);
+                    self.end_index =
+                        self.start_index + std::cmp::min(ITEMS_PER_PAGE + 1, self.items);
                 }
             }
             Msg::Escape => {
                 self.search_query = "".to_string();
                 self.focus_index = None;
                 self.start_index = 0;
-                self.end_index = 11;
+                self.end_index = ITEMS_PER_PAGE + 1;
                 self.items = SEARCH_ITEMS.len();
                 ctx.props().on_escape.emit(());
             }
