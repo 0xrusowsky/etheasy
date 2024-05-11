@@ -170,9 +170,9 @@ impl Component for BlockComponent {
         });
         let block_class = format!("{} {}",
             if ctx.props().block_index == ctx.props().blocks.len() - 1 {
-                "min-h-[110px] "
+                "min-h-[110px]"
             } else {
-                "focus:min-h-[110px] "
+                "focus:min-h-[110px]"
             },
             "w-full h-full font-mono focus-within:text-gray-50 placeholder-gray-600 bg-transparent border-0 appearance-none resize-none focus:outline-none focus:ring-0 focus:border-0 active:border-0"
         );
@@ -190,7 +190,7 @@ impl Component for BlockComponent {
                         placeholder={
                             // Only first block should have a placeholder
                             if ctx.props().block_index == ctx.props().blocks.len() - 1 {
-                                "1 ether to gwei\nnow - unix(2023,12,31)\naddress(0)\nunchecked(max_uint + 1)"
+                                "address(0)\nunchecked(max_uint + 1)\nnow - unix(2023,12,31)\n1 ether to gwei"
                             } else {
                                 ""
                             }
