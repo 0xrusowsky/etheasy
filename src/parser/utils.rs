@@ -155,6 +155,7 @@ pub fn get_v3_quote_from_tick(
     }
 }
 
+const TWO: U256 = uniswap_v3_math::full_math::TWO;
 const Q96: U256 = uniswap_v3_math::sqrt_price_math::Q96;
 const MIN_SQRT_RATIO: U256 = uniswap_v3_math::tick_math::MIN_SQRT_RATIO;
 const MAX_SQRT_RATIO: U256 = uniswap_v3_math::tick_math::MAX_SQRT_RATIO;
@@ -176,18 +177,11 @@ pub fn get_v3_liquidity(
     }
 
     if sqrt_price < sqrt_pa {
-        Some(
-            Q96 * amount1 * sqrt_pb * sqrt_pa / sqrt_price.pow(U256::from(2)) / (sqrt_pb - sqrt_pa),
-        )
+        Some(Q96 * amount1 * sqrt_pb * sqrt_pa / sqrt_price.pow(TWO) / (sqrt_pb - sqrt_pa))
     } else if sqrt_price > sqrt_pb {
         Some(Q96 * amount1 / (sqrt_pb - sqrt_pa))
     } else {
-        Some(
-            Q96 * amount1
-                / (sqrt_price.wrapping_mul(U256::from(2))
-                    - (sqrt_price.pow(U256::from(2))) / sqrt_pb
-                    - sqrt_pa),
-        )
+        Some(Q96 * amount1 / (sqrt_price * TWO - (sqrt_price.pow(TWO) / sqrt_pb) - sqrt_pa))
     }
 }
 
