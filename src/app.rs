@@ -1,21 +1,50 @@
-use crate::components::frame::FrameComponent;
+use crate::components::playground::frame::FrameComponent;
+use crate::components::search::menu::SearchMenuComponent;
 use crate::components::theme::ThemeComponent;
 
-use web_sys::HtmlElement;
+use gloo::events::EventListener;
+use gloo::timers::callback::Timeout;
+use web_sys::wasm_bindgen::JsCast;
+use web_sys::{HtmlElement, KeyboardEvent, Window};
 use yew::{prelude::*, Component};
 
 pub enum Msg {
     SwitchTheme(bool),
+    CheckForSearchAction(KeyboardEvent),
+    SearchOn,
+    SearchOff,
+    LandingOff,
+    GoToLanding,
+    GoToPlayground,
 }
 
 pub struct App {
     dark_mode: bool,
+    work_mode: bool,
+    search_mode: bool,
     landing_ref: NodeRef,
+    playgroundg_ref: NodeRef,
+    kbd_listener: Option<EventListener>,
+    _timeout: Option<Timeout>,
 }
 
 impl App {
     fn is_dark_mode(&self) -> bool {
         self.dark_mode
+    }
+
+    fn set_kbd_listener(&mut self, window: &Window, ctx: &Context<Self>) {
+        let link = ctx.link().clone();
+        let handler = move |event: KeyboardEvent| {
+            link.send_message(Msg::CheckForSearchAction(event));
+        };
+
+        let listener = EventListener::new(window, "keydown", move |event: &web_sys::Event| {
+            if let Some(keyboard_event) = event.dyn_ref::<web_sys::KeyboardEvent>() {
+                handler(keyboard_event.clone());
+            }
+        });
+        self.kbd_listener = Some(listener);
     }
 }
 
@@ -23,17 +52,64 @@ impl Component for App {
     type Message = Msg;
     type Properties = ();
 
-    fn create(_ctx: &Context<Self>) -> Self {
-        Self {
+    fn create(ctx: &Context<Self>) -> Self {
+        let mut app = Self {
             dark_mode: true,
+            work_mode: false,
+            search_mode: false,
             landing_ref: NodeRef::default(),
+            playgroundg_ref: NodeRef::default(),
+            kbd_listener: None,
+            _timeout: None,
+        };
+        if let Some(window) = web_sys::window() {
+            app.set_kbd_listener(&window, &ctx);
         }
+        app
     }
 
-    fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
+    fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             Msg::SwitchTheme(dark_mode) => {
                 self.dark_mode = dark_mode;
+            }
+            Msg::CheckForSearchAction(e) => {
+                if !self.search_mode && (e.meta_key() || e.ctrl_key()) && e.key() == "k" {
+                    self.work_mode = true;
+                    self.search_mode = true;
+                } else if self.search_mode && e.key() == "Escape" {
+                    self.search_mode = false;
+                } else {
+                    return false;
+                }
+            }
+            Msg::SearchOn => {
+                self.search_mode = true;
+                self.work_mode = true;
+            }
+            Msg::SearchOff => {
+                self.search_mode = false;
+            }
+            Msg::GoToLanding => {
+                self.work_mode = false;
+                if let Some(landing) = self.landing_ref.cast::<HtmlElement>() {
+                    landing.scroll_into_view();
+                }
+            }
+            Msg::LandingOff => {
+                self.work_mode = true;
+            }
+            Msg::GoToPlayground => {
+                if let Some(pg) = self.playgroundg_ref.cast::<HtmlElement>() {
+                    pg.scroll_into_view();
+                }
+                let link = ctx.link().clone();
+                let timeout = Timeout::new(1_000, move || {
+                    // 1sec delay to scroll to playground
+                    link.send_message(Msg::LandingOff);
+                });
+                self._timeout = Some(timeout);
+                return false;
             }
         }
         true
@@ -41,17 +117,14 @@ impl Component for App {
 
     fn view(&self, ctx: &Context<Self>) -> Html {
         html! {
-        <div class={if self.is_dark_mode() { "dark" } else { "" }}>
-        // landing
-        <div id="landing" ref={self.landing_ref.clone()} class="bg-gray-100 dark:bg-dark-primary"
-            style="min-height: 100vh; display: flex; flex-direction: column;">
-            <div class="w-full">
+        <div class={if self.is_dark_mode() { "dark scroll-smooth" } else { "scroll-smooth" }}>
+        <div class="w-full flex flex-col bg-gray-100 dark:bg-dark-primary min-h-screen">
             // navbar
-            <a href="#landing">
+            <button onclick={ctx.link().callback(|_| Msg::GoToLanding)}>
             <div class="w-full bg-gray-100 dark:bg-dark-primary" style="position: fixed; top: 0; z-index: 10;">
             <div class="max-w-md md:max-w-2xl lg:max-w-4xl 2xl:max-w-6xl 4xl:max-w-8xl mx-auto">
             <div class="flex items-center justify-between px-0 py-4 border-b border-gray-200 dark:border-gray-700">
-                <h1 class="text-2xl font-extrabold tracking-tight text-gray-800 dark:text-gray-200">
+                <h1 class="text-2xl max-md:text-lg font-extrabold tracking-tight text-gray-800 dark:text-gray-200">
                     {"Ethereum"}<span class="font-normal text-gray-700 dark:text-gray-300">{" development made "}</span>
                     {"easy"}<span class="font-normal text-gray-700 dark:text-gray-300">{"."}</span>
                 </h1>
@@ -74,18 +147,20 @@ impl Component for App {
             </div>
             </div>
             </div>
-            </a>
-        </div>
-        // title and button
+            </button>
+        // landing
+        if !self.work_mode {
+        <div id="landing" ref={self.landing_ref.clone()} class="bg-gray-100 dark:bg-dark-primary"
+            style="min-height: 100vh; display: flex; flex-direction: column;">
         <div class="flex-grow flex flex-col justify-between text-gray-800 dark:text-gray-200">
             <div class="flex flex-grow items-center justify-center">
-            <div class="text-lg text-center">
+            <div class="text-lg max-sm:text-sm text-center">
                 <br/>
                 <br/>
-                <h1 class="text-8xl text-center font-extrabold tracking-tight py-8">
+                <h1 class="text-8xl max-sm:text-7xl text-center font-extrabold tracking-tight py-8">
                 {"eth easy!"}
                 </h1>
-                <p class="text-2xl text-center"> {"Easy-to-use, flexible, and blazingly fast toolkit that helps accelerate Ethereum development."} </p>
+                <p class="text-2xl max-sm:text-xl text-center"> {"Easy-to-use, flexible, and blazingly fast toolkit that helps accelerate Ethereum development."} </p>
                 // <p class="text-lg text-center"> {"Ethereum development."} </p>
                 <br/>
                 <br/>
@@ -96,13 +171,13 @@ impl Component for App {
                 <p> {"Powered by "} </p><a href="https://www.rust-lang.org/" class="font-bold">{"Rust 🦀"}</a><p> {" and "} </p><a href="https://yew.rs/" class="font-bold">{"Yew"}</a><p> {""} </p>
                 </div>
                 <div class="flex items-center text-center justify-center space-x-1">
-                <p> {"with native support for EVM words thanks to "} </p>
-                <a href="https://github.com/alloy-rs" class="font-bold">{"alloy-rs"}</a><p>{" and "} </p> <a href="https://github.com/recmo/uint" class="font-bold">{"ruint."}</a>
+                <p> {"with native support for EVM words"}</p><p class="hidden sm:inline">{"thanks to "} </p>
+                <a href="https://github.com/alloy-rs" class="font-bold hidden sm:inline">{"alloy-rs"}</a><p class="hidden sm:inline">{" and "} </p> <a href="https://github.com/recmo/uint" class="font-bold hidden sm:inline">{"ruint."}</a>
                 </div>
             </div>
             </div>
             <div class="p-4 w-full">
-                <a href="#playground" class="transition-all">
+                <a class="transition-all" onclick={ctx.link().callback(|_| Msg::GoToPlayground)}>
                     <button class="btn mx-auto block hover:font-semibold animate-bounce w-100 h-6">
                         {"Try it out"}
                     </button>
@@ -111,12 +186,19 @@ impl Component for App {
             </div>
             </div>
         </div>
+        }
         // playground
-        <div class="px-3 bg-gray-100 dark:bg-dark-primary md:px-0">
-        <div class="min-h-screen flex flex-col items-center justify-center w-full space-y-8">
-        <div class="w-full max-w-md md:max-w-2xl lg:max-w-4xl 2xl:max-w-6xl 4xl:max-w-8xl">
-            // frame
-            <div id="playground"> <FrameComponent /> </div>
+        <div ref={self.playgroundg_ref.clone()} class="px-3 bg-gray-100 dark:bg-dark-primary md:px-0 flex flex-col">
+        <div class="flex flex-col items-center justify-center w-full space-y-8">
+        <div class="w-full max-w-md md:max-w-2xl lg:max-w-4xl 2xl:max-w-6xl 4xl:max-w-8xl 8xl:max-w-10xl">
+            <div id="playground">
+                if self.search_mode {<SearchMenuComponent on_escape={ctx.link().callback(|_| Msg::SearchOff)}/>}
+                <FrameComponent
+                    search_mode={self.search_mode}
+                    focus_ref={self.playgroundg_ref.clone()}
+                    on_search={ctx.link().callback(|_| Msg::SearchOn)}
+                />
+            </div>
             // footer
             <div class="text-sm text-gray-600 dark:text-gray-400 flex flex-col sm:flex-row justify-center items-center space-x-2 py-3">
                     <p> {"© 2024 etheasy"} </p>
@@ -128,13 +210,7 @@ impl Component for App {
         </div>
         </div>
         </div>
-        }
-    }
-
-    fn rendered(&mut self, _ctx: &Context<Self>, first_render: bool) {
-        if first_render {
-            let goto = self.landing_ref.cast::<HtmlElement>().unwrap();
-            goto.scroll_into_view();
+        </div>
         }
     }
 }

@@ -2,6 +2,7 @@
 mod convert_chart;
 pub mod types;
 pub mod utils;
+use crate::components::playground::block::BlockState;
 use convert_chart::{convert, UnitType};
 use types::{abi::*, result::*};
 use utils::*;
@@ -39,15 +40,15 @@ lazy_static::lazy_static! {
     };
 }
 
-pub fn parse(input: &str) -> ParseResult {
+pub fn parse(input: &str, blocks: &Vec<BlockState>) -> ParseResult {
     let parse_result = Calculator::parse(Rule::calculation, input);
     match parse_result {
-        Ok(r) => eval(r, false),
+        Ok(r) => eval(r, false, blocks),
         Err(_) => ParseResult::NAN,
     }
 }
 
-fn eval(expression: Pairs<Rule>, unchecked: bool) -> ParseResult {
+fn eval(expression: Pairs<Rule>, unchecked: bool, blocks: &Vec<BlockState>) -> ParseResult {
     PREC_CLIMBER.climb(
         expression,
         |pair: Pair<Rule>| match pair.as_rule() {
@@ -95,7 +96,7 @@ fn eval(expression: Pairs<Rule>, unchecked: bool) -> ParseResult {
                 let mut i = pair.into_inner();
                 let name = i.next().unwrap().as_str();
                 match name {
-                    "unchecked" => eval(i, true),
+                    "unchecked" => eval(i, true, blocks),
                     "get_sqrt_ratio_from_tick"
                     | "get_sqrt_x96_from_tick"
                     | "sqrt_ratio_from_tick"
@@ -114,7 +115,7 @@ fn eval(expression: Pairs<Rule>, unchecked: bool) -> ParseResult {
                             ParseResult::NAN
                         }
                     },
-                    _ => match eval(i, unchecked) {
+                    _ => match eval(i, unchecked, blocks) {
                         ParseResult::Value(value) => utility_fn_val(name, value),
                         ParseResult::String(s) => utility_fn_str(name, &s),
                         _ => ParseResult::NAN,
@@ -137,7 +138,7 @@ fn eval(expression: Pairs<Rule>, unchecked: bool) -> ParseResult {
             Rule::function_args => {
                 let mut i = pair.into_inner();
                 let name = i.next().unwrap().as_str();
-                utility_fn_args(name, i, unchecked)
+                utility_fn_args(name, i, unchecked, blocks)
             }
             Rule::now => U256::from(Utc::now().timestamp()).into(),
             Rule::addr_zero => String::from("0x0000000000000000000000000000000000000000").into(),
@@ -172,7 +173,14 @@ fn eval(expression: Pairs<Rule>, unchecked: bool) -> ParseResult {
                 U256::from_str_radix(bin, 2).ok().into()
             }
             Rule::quote => trim_quotes(pair.as_str()).into(),
-            Rule::expr => eval(pair.into_inner(), unchecked),
+            Rule::expr => eval(pair.into_inner(), unchecked, blocks),
+            Rule::ident => {
+                let id = pair.as_str().trim();
+                match blocks.iter().find(|b| b.get_id() == id) {
+                    Some(block) => block.get_result().into(),
+                    None => ParseResult::NAN,
+                }
+            }
             _ => ParseResult::NAN,
         },
         |lhs: ParseResult, op: Pair<Rule>, rhs: ParseResult| {
@@ -288,9 +296,6 @@ fn utility_fn_str(input: &str, value: &str) -> ParseResult {
             };
             for i in (start..value.len()).step_by(64) {
                 let end = std::cmp::min(i + 64, value.len());
-                gloo_console::log!("i", i);
-                gloo_console::log!("end", end);
-                gloo_console::log!(&value[i..end]);
                 formatted = format!("{}\n{}", formatted, &value[i..end]);
             }
             formatted.into()
@@ -339,7 +344,12 @@ fn utility_fn_val(input: &str, value: U256) -> ParseResult {
     }
 }
 
-fn utility_fn_args(input: &str, mut pairs: Pairs<Rule>, unchecked: bool) -> ParseResult {
+fn utility_fn_args(
+    input: &str,
+    mut pairs: Pairs<Rule>,
+    unchecked: bool,
+    blocks: &Vec<BlockState>,
+) -> ParseResult {
     let value = pairs.next().unwrap();
     let value_str = value.clone().as_str();
     let value_inner = value.into_inner();
@@ -386,7 +396,6 @@ fn utility_fn_args(input: &str, mut pairs: Pairs<Rule>, unchecked: bool) -> Pars
             },
             "abi_encode" => {
                 let args = split_top_level(trim_parentheses(&args));
-                gloo_console::log!(format!("{:?}", args));
                 match abi_encode(&value_str, args, false) {
                     Ok(encoded) => encoded.into(),
                     Err(_) => ParseResult::NAN,
@@ -419,11 +428,11 @@ fn utility_fn_args(input: &str, mut pairs: Pairs<Rule>, unchecked: bool) -> Pars
                             Ok(in_token1) => in_token1,
                             Err(_) => return ParseResult::NAN,
                         };
-                        let decimals0 = match eval(pairs.next().unwrap().into_inner(), unchecked) {
+                        let decimals0 = match eval(pairs.next().unwrap().into_inner(), unchecked, blocks) {
                             ParseResult::Value(v) => v,
                             _ => return ParseResult::NAN,
                         };
-                        let decimals1 = match eval(pairs.next().unwrap().into_inner(), unchecked) {
+                        let decimals1 = match eval(pairs.next().unwrap().into_inner(), unchecked, blocks) {
                             ParseResult::Value(v) => v,
                             _ => return ParseResult::NAN,
                         };
@@ -437,13 +446,13 @@ fn utility_fn_args(input: &str, mut pairs: Pairs<Rule>, unchecked: bool) -> Pars
                 _ => ParseResult::NAN,
             }
         } else {
-            match eval(value_inner, unchecked) {
-                ParseResult::Value(value) => {
-                    let args = pairs.next().unwrap().as_str();
-                    match input {
-                        "root" => value.root(args.parse().unwrap_or(2)).into(),
-                        "format_units" => format_units(value, args).ok().into(),
-                        "unix" => format_unix(value, Some(args.to_string())),
+            match eval(value_inner, unchecked, blocks) {
+              ParseResult::Value(value) => {
+                  let args = pairs.next().unwrap().as_str();
+                  match input {
+                      "root" => value.root(args.parse().unwrap_or(2)).into(),
+                      "format_units" => format_units(value, args).ok().into(),
+                      "unix" => format_unix(value, Some(args.to_string())),
                         "get_v3_price_from_tick"
                         | "get_v3_price_at_tick"
                         | "v3_price_from_tick"
@@ -459,12 +468,12 @@ fn utility_fn_args(input: &str, mut pairs: Pairs<Rule>, unchecked: bool) -> Pars
                                     Err(_) => return ParseResult::NAN,
                                 };
                                 let decimals0 =
-                                    match eval(pairs.next().unwrap().into_inner(), unchecked) {
+                                    match eval(pairs.next().unwrap().into_inner(), unchecked, blocks) {
                                         ParseResult::Value(v) => v,
                                         _ => return ParseResult::NAN,
                                     };
                                 let decimals1 =
-                                    match eval(pairs.next().unwrap().into_inner(), unchecked) {
+                                    match eval(pairs.next().unwrap().into_inner(), unchecked, blocks) {
                                         ParseResult::Value(v) => v,
                                         _ => return ParseResult::NAN,
                                     };
@@ -500,12 +509,12 @@ fn utility_fn_args(input: &str, mut pairs: Pairs<Rule>, unchecked: bool) -> Pars
                                     Err(_) => return ParseResult::NAN,
                                 };
                                 let decimals0 =
-                                    match eval(pairs.next().unwrap().into_inner(), unchecked) {
+                                    match eval(pairs.next().unwrap().into_inner(), unchecked, blocks) {
                                         ParseResult::Value(v) => v,
                                         _ => return ParseResult::NAN,
                                     };
                                 let decimals1 =
-                                    match eval(pairs.next().unwrap().into_inner(), unchecked) {
+                                    match eval(pairs.next().unwrap().into_inner(), unchecked, blocks) {
                                         ParseResult::Value(v) => v,
                                         _ => return ParseResult::NAN,
                                     };
@@ -522,7 +531,7 @@ fn utility_fn_args(input: &str, mut pairs: Pairs<Rule>, unchecked: bool) -> Pars
                                 gloo_console::log!("sqrt_pa and sqrt_pb are required");
                                 return ParseResult::NAN;
                             }
-                            let sqrt_pa = match eval(pairs.next().unwrap().into_inner(), unchecked)
+                            let sqrt_pa = match eval(pairs.next().unwrap().into_inner(), unchecked, blocks)
                             {
                                 ParseResult::Value(v) => v,
                                 _ => {
@@ -530,7 +539,7 @@ fn utility_fn_args(input: &str, mut pairs: Pairs<Rule>, unchecked: bool) -> Pars
                                     return ParseResult::NAN;
                                 }
                             };
-                            let sqrt_pb = match eval(pairs.next().unwrap().into_inner(), unchecked)
+                            let sqrt_pb = match eval(pairs.next().unwrap().into_inner(), unchecked, blocks)
                             {
                                 ParseResult::Value(v) => v,
                                 _ => {
@@ -546,7 +555,7 @@ fn utility_fn_args(input: &str, mut pairs: Pairs<Rule>, unchecked: bool) -> Pars
                                 gloo_console::log!("sqrt_pa and sqrt_pb are required");
                                 return ParseResult::NAN;
                             }
-                            let sqrt_pa = match eval(pairs.next().unwrap().into_inner(), unchecked)
+                            let sqrt_pa = match eval(pairs.next().unwrap().into_inner(), unchecked, blocks)
                             {
                                 ParseResult::Value(v) => v,
                                 _ => {
@@ -554,7 +563,7 @@ fn utility_fn_args(input: &str, mut pairs: Pairs<Rule>, unchecked: bool) -> Pars
                                     return ParseResult::NAN;
                                 }
                             };
-                            let sqrt_pb = match eval(pairs.next().unwrap().into_inner(), unchecked)
+                            let sqrt_pb = match eval(pairs.next().unwrap().into_inner(), unchecked, blocks)
                             {
                                 ParseResult::Value(v) => v,
                                 _ => {
@@ -571,7 +580,7 @@ fn utility_fn_args(input: &str, mut pairs: Pairs<Rule>, unchecked: bool) -> Pars
                                 gloo_console::log!("sqrt_pa and sqrt_pb are required");
                                 return ParseResult::NAN;
                             }
-                            let sqrt_pa = match eval(pairs.next().unwrap().into_inner(), unchecked)
+                            let sqrt_pa = match eval(pairs.next().unwrap().into_inner(), unchecked, blocks)
                             {
                                 ParseResult::Value(v) => v,
                                 _ => {
@@ -579,7 +588,7 @@ fn utility_fn_args(input: &str, mut pairs: Pairs<Rule>, unchecked: bool) -> Pars
                                     return ParseResult::NAN;
                                 }
                             };
-                            let sqrt_pb = match eval(pairs.next().unwrap().into_inner(), unchecked)
+                            let sqrt_pb = match eval(pairs.next().unwrap().into_inner(), unchecked, blocks)
                             {
                                 ParseResult::Value(v) => v,
                                 _ => {

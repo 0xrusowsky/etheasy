@@ -90,10 +90,7 @@ pub fn encode_function_args(func: &Function, args: Vec<String>) -> Result<Vec<u8
         .map(
             |(input, arg)| match DynSolType::parse(&input.selector_type()) {
                 Ok(ty) => match DynSolType::coerce_str(&ty, &arg) {
-                    Ok(encoded) => {
-                        gloo_console::log!(format!("{:#?}", encoded));
-                        Ok(encoded)
-                    }
+                    Ok(encoded) => Ok(encoded),
                     Err(e) => return Err(format!("failed to coerce value: {}", e)),
                 },
                 Err(e) => return Err(format!("failed to parse type: {}", e)),
@@ -123,7 +120,6 @@ pub fn abi_encode(abi: &str, args: Vec<String>, with_selector: bool) -> Result<S
         Ok(res) => hex::encode(res),
         Err(e) => return Err(format!("Could not ABI encode the function and arguments. Did you pass in the right types?\nError\n{}", e)),
     };
-    gloo_console::log!("calldata: {}", &calldata);
     if !with_selector {
         Ok(format!("0x{}", &calldata[8..]))
     } else {
@@ -186,7 +182,6 @@ impl Serialize for Encodable {
                 state.end()
             }
             DynSolValue::Array(v) | DynSolValue::FixedArray(v) | DynSolValue::Tuple(v) => {
-                gloo_console::log!(format!("Array: {:?}", v));
                 let mut seq = serializer.serialize_seq(Some(v.len()))?;
                 for elem in v.iter() {
                     seq.serialize_element(&Encodable(elem.clone()))?;
