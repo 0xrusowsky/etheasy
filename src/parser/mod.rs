@@ -99,8 +99,12 @@ fn eval(expression: Pairs<Rule>, unchecked: bool, blocks: &Vec<BlockState>) -> P
                     "unchecked" => eval(i, true, blocks),
                     "get_sqrt_ratio_from_tick"
                     | "get_sqrt_x96_from_tick"
+                    | "get_sqrt_ratio_at_tick"
+                    | "get_sqrt_x96_at_tick"
                     | "sqrt_ratio_from_tick"
                     | "sqrt_x96_from_tick"
+                    | "sqrt_ratio_at_tick"
+                    | "sqrt_x96_at_tick"
                     | "get_sqrt_ratio"
                     | "get_sqrt_x96" => match i.as_str().parse::<i32>() {
                         Ok(v) => match uniswap_v3_math::tick_math::get_sqrt_ratio_at_tick(v) {
@@ -331,8 +335,12 @@ fn utility_fn_val(input: &str, value: U256) -> ParseResult {
         // uniswap v3 utils
         "get_tick_from_sqrt_ratio"
         | "get_tick_from_sqrt_x96"
+        | "get_tick_at_sqrt_ratio"
+        | "get_tick_at_sqrt_x96"
         | "tick_from_sqrt_ratio"
         | "tick_from_sqrt_x96"
+        | "tick_at_sqrt_ratio"
+        | "tick_at_sqrt_x96"
         | "get_tick" => match uniswap_v3_math::tick_math::get_tick_at_sqrt_ratio(value) {
             Ok(v) => v.to_string().into(),
             Err(e) => {
@@ -418,7 +426,7 @@ fn utility_fn_args(
         if value_str.starts_with("-") {
             let args = pairs.next().unwrap().as_str();
             match input {
-                "v3_price_from_tick" => match value_str.to_string().parse::<i32>() {
+                "price_from_tick" => match value_str.to_string().parse::<i32>() {
                     Ok(tick) => {
                         if pairs.len() < 2 {
                             gloo_console::log!("decimals0 and decimals1 are required");
@@ -428,14 +436,16 @@ fn utility_fn_args(
                             Ok(in_token1) => in_token1,
                             Err(_) => return ParseResult::NAN,
                         };
-                        let decimals0 = match eval(pairs.next().unwrap().into_inner(), unchecked, blocks) {
-                            ParseResult::Value(v) => v,
-                            _ => return ParseResult::NAN,
-                        };
-                        let decimals1 = match eval(pairs.next().unwrap().into_inner(), unchecked, blocks) {
-                            ParseResult::Value(v) => v,
-                            _ => return ParseResult::NAN,
-                        };
+                        let decimals0 =
+                            match eval(pairs.next().unwrap().into_inner(), unchecked, blocks) {
+                                ParseResult::Value(v) => v,
+                                _ => return ParseResult::NAN,
+                            };
+                        let decimals1 =
+                            match eval(pairs.next().unwrap().into_inner(), unchecked, blocks) {
+                                ParseResult::Value(v) => v,
+                                _ => return ParseResult::NAN,
+                            };
                         let quote =
                             utils::get_v3_quote_from_tick(tick, decimals0, decimals1, in_token1);
                         let units = if in_token1 { decimals0 } else { decimals1 };
@@ -447,16 +457,17 @@ fn utility_fn_args(
             }
         } else {
             match eval(value_inner, unchecked, blocks) {
-              ParseResult::Value(value) => {
-                  let args = pairs.next().unwrap().as_str();
-                  match input {
-                      "root" => value.root(args.parse().unwrap_or(2)).into(),
-                      "format_units" => format_units(value, args).ok().into(),
-                      "unix" => format_unix(value, Some(args.to_string())),
-                        "get_v3_price_from_tick"
-                        | "get_v3_price_at_tick"
-                        | "v3_price_from_tick"
-                        | "v3_price_at_tick"
+                ParseResult::Value(value) => {
+                    let args = pairs.next().unwrap().as_str();
+                    match input {
+                        "root" => value.root(args.parse().unwrap_or(2)).into(),
+                        "format_units" => format_units(value, args).ok().into(),
+                        "unix" => format_unix(value, Some(args.to_string())),
+                        "get_price_from_tick"
+                        | "get_price_at_tick"
+                        | "price_from_tick"
+                        | "price_at_tick"
+                        | "get_price"
                         | "get_price" => match value.to_string().parse::<i32>() {
                             Ok(tick) => {
                                 if pairs.len() < 2 {
@@ -467,16 +478,22 @@ fn utility_fn_args(
                                     Ok(in_token1) => in_token1,
                                     Err(_) => return ParseResult::NAN,
                                 };
-                                let decimals0 =
-                                    match eval(pairs.next().unwrap().into_inner(), unchecked, blocks) {
-                                        ParseResult::Value(v) => v,
-                                        _ => return ParseResult::NAN,
-                                    };
-                                let decimals1 =
-                                    match eval(pairs.next().unwrap().into_inner(), unchecked, blocks) {
-                                        ParseResult::Value(v) => v,
-                                        _ => return ParseResult::NAN,
-                                    };
+                                let decimals0 = match eval(
+                                    pairs.next().unwrap().into_inner(),
+                                    unchecked,
+                                    blocks,
+                                ) {
+                                    ParseResult::Value(v) => v,
+                                    _ => return ParseResult::NAN,
+                                };
+                                let decimals1 = match eval(
+                                    pairs.next().unwrap().into_inner(),
+                                    unchecked,
+                                    blocks,
+                                ) {
+                                    ParseResult::Value(v) => v,
+                                    _ => return ParseResult::NAN,
+                                };
                                 let quote = utils::get_v3_quote_from_tick(
                                     tick, decimals0, decimals1, in_token1,
                                 );
@@ -494,10 +511,10 @@ fn utility_fn_args(
                             }
                             Err(_) => ParseResult::NAN,
                         },
-                        "get_v3_quote_from_tick"
-                        | "get_v3_quote_at_tick"
-                        | "v3_quote_from_tick"
-                        | "v3_quote_at_tick"
+                        "get_quote_from_tick"
+                        | "get_quote_at_tick"
+                        | "quote_from_tick"
+                        | "quote_at_tick"
                         | "get_quote" => match value.to_string().parse::<i32>() {
                             Ok(tick) => {
                                 if pairs.len() < 2 {
@@ -508,16 +525,22 @@ fn utility_fn_args(
                                     Ok(in_token1) => in_token1,
                                     Err(_) => return ParseResult::NAN,
                                 };
-                                let decimals0 =
-                                    match eval(pairs.next().unwrap().into_inner(), unchecked, blocks) {
-                                        ParseResult::Value(v) => v,
-                                        _ => return ParseResult::NAN,
-                                    };
-                                let decimals1 =
-                                    match eval(pairs.next().unwrap().into_inner(), unchecked, blocks) {
-                                        ParseResult::Value(v) => v,
-                                        _ => return ParseResult::NAN,
-                                    };
+                                let decimals0 = match eval(
+                                    pairs.next().unwrap().into_inner(),
+                                    unchecked,
+                                    blocks,
+                                ) {
+                                    ParseResult::Value(v) => v,
+                                    _ => return ParseResult::NAN,
+                                };
+                                let decimals1 = match eval(
+                                    pairs.next().unwrap().into_inner(),
+                                    unchecked,
+                                    blocks,
+                                ) {
+                                    ParseResult::Value(v) => v,
+                                    _ => return ParseResult::NAN,
+                                };
                                 utils::get_v3_quote_from_tick(tick, decimals0, decimals1, in_token1)
                                     .into()
                             }
@@ -531,71 +554,71 @@ fn utility_fn_args(
                                 gloo_console::log!("sqrt_pa and sqrt_pb are required");
                                 return ParseResult::NAN;
                             }
-                            let sqrt_pa = match eval(pairs.next().unwrap().into_inner(), unchecked, blocks)
-                            {
-                                ParseResult::Value(v) => v,
-                                _ => {
-                                    gloo_console::log!("sqrt_pa is not a number");
-                                    return ParseResult::NAN;
-                                }
-                            };
-                            let sqrt_pb = match eval(pairs.next().unwrap().into_inner(), unchecked, blocks)
-                            {
-                                ParseResult::Value(v) => v,
-                                _ => {
-                                    gloo_console::log!("sqrt_pb is not a number");
-                                    return ParseResult::NAN;
-                                }
-                            };
+                            let sqrt_pa =
+                                match eval(pairs.next().unwrap().into_inner(), unchecked, blocks) {
+                                    ParseResult::Value(v) => v,
+                                    _ => {
+                                        gloo_console::log!("sqrt_pa is not a number");
+                                        return ParseResult::NAN;
+                                    }
+                                };
+                            let sqrt_pb =
+                                match eval(pairs.next().unwrap().into_inner(), unchecked, blocks) {
+                                    ParseResult::Value(v) => v,
+                                    _ => {
+                                        gloo_console::log!("sqrt_pb is not a number");
+                                        return ParseResult::NAN;
+                                    }
+                                };
                             utils::get_v3_liquidity(value, sqrt_price, sqrt_pa, sqrt_pb).into()
                         }
-                        "get_amount0_from_v3_range" | "amount0_from_v3_range" | "get_amount0" => {
+                        "get_amount0_from_range" | "amount0_from_range" | "get_amount0" => {
                             let sqrt_price = args.parse::<U256>().unwrap();
                             if pairs.len() < 2 {
                                 gloo_console::log!("sqrt_pa and sqrt_pb are required");
                                 return ParseResult::NAN;
                             }
-                            let sqrt_pa = match eval(pairs.next().unwrap().into_inner(), unchecked, blocks)
-                            {
-                                ParseResult::Value(v) => v,
-                                _ => {
-                                    gloo_console::log!("sqrt_pa is not a number");
-                                    return ParseResult::NAN;
-                                }
-                            };
-                            let sqrt_pb = match eval(pairs.next().unwrap().into_inner(), unchecked, blocks)
-                            {
-                                ParseResult::Value(v) => v,
-                                _ => {
-                                    gloo_console::log!("sqrt_pb is not a number");
-                                    return ParseResult::NAN;
-                                }
-                            };
+                            let sqrt_pa =
+                                match eval(pairs.next().unwrap().into_inner(), unchecked, blocks) {
+                                    ParseResult::Value(v) => v,
+                                    _ => {
+                                        gloo_console::log!("sqrt_pa is not a number");
+                                        return ParseResult::NAN;
+                                    }
+                                };
+                            let sqrt_pb =
+                                match eval(pairs.next().unwrap().into_inner(), unchecked, blocks) {
+                                    ParseResult::Value(v) => v,
+                                    _ => {
+                                        gloo_console::log!("sqrt_pb is not a number");
+                                        return ParseResult::NAN;
+                                    }
+                                };
                             utils::get_amount0_from_v3_range(value, sqrt_price, sqrt_pa, sqrt_pb)
                                 .into()
                         }
-                        "get_amount1_from_v3_range" | "amount1_from_v3_range" | "get_amount1" => {
+                        "get_amount1_from_range" | "amount1_from_range" | "get_amount1" => {
                             let sqrt_price = args.parse::<U256>().unwrap();
                             if pairs.len() < 2 {
                                 gloo_console::log!("sqrt_pa and sqrt_pb are required");
                                 return ParseResult::NAN;
                             }
-                            let sqrt_pa = match eval(pairs.next().unwrap().into_inner(), unchecked, blocks)
-                            {
-                                ParseResult::Value(v) => v,
-                                _ => {
-                                    gloo_console::log!("sqrt_pa is not a number");
-                                    return ParseResult::NAN;
-                                }
-                            };
-                            let sqrt_pb = match eval(pairs.next().unwrap().into_inner(), unchecked, blocks)
-                            {
-                                ParseResult::Value(v) => v,
-                                _ => {
-                                    gloo_console::log!("sqrt_pb is not a number");
-                                    return ParseResult::NAN;
-                                }
-                            };
+                            let sqrt_pa =
+                                match eval(pairs.next().unwrap().into_inner(), unchecked, blocks) {
+                                    ParseResult::Value(v) => v,
+                                    _ => {
+                                        gloo_console::log!("sqrt_pa is not a number");
+                                        return ParseResult::NAN;
+                                    }
+                                };
+                            let sqrt_pb =
+                                match eval(pairs.next().unwrap().into_inner(), unchecked, blocks) {
+                                    ParseResult::Value(v) => v,
+                                    _ => {
+                                        gloo_console::log!("sqrt_pb is not a number");
+                                        return ParseResult::NAN;
+                                    }
+                                };
                             utils::get_amount1_from_v3_range(value, sqrt_price, sqrt_pa, sqrt_pb)
                                 .into()
                         }

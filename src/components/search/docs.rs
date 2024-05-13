@@ -27,7 +27,8 @@ impl CommandType {
     }
 }
 
-pub static SEARCH_ITEMS: &[SearchItemData; 37] = &[
+pub static SEARCH_ITEMS: &[SearchItemData; 43] = &[
+    // START: INPUT COMMANDS
     SearchItemData {
         command: "variable",
         c_type: CommandType::Input,
@@ -38,7 +39,7 @@ pub static SEARCH_ITEMS: &[SearchItemData; 37] = &[
         command: "uint256",
         c_type: CommandType::Input,
         c_alias: None,
-        desc: "EVM word that consists of up to 32 bytes or 256 bits representing an unisgned integer.\nAccepts decimal, hex, or binary inputs. Also supports scientific notation for decimals.\nDue to its integer nature, it doesn't support floating point numbers.\nDue to its unsigned nature, it doesn't support negative numbers.",
+        desc: "EVM word that consists of up to 32 bytes or 256 bits representing an unsigned integer.\nAccepts decimal, hex, or binary inputs. Also supports scientific notation for decimals.\nDue to its integer nature, it doesn't support floating point numbers.\nDue to its unsigned nature, it doesn't support negative numbers.",
     },
     SearchItemData {
         command: "string",
@@ -46,12 +47,14 @@ pub static SEARCH_ITEMS: &[SearchItemData; 37] = &[
         c_alias: None,
         desc: "Strings must be wrapped around quotation marks. Both single and double quotes are accepted.",
     },
+    // END: INPUT COMMANDS
     SearchItemData {
         command: "unchecked",
         c_type: CommandType::Function,
         c_alias: None,
         desc: "Enables unchecked math for any calculation performed inside its brackets.",
     },
+    // START: OPERATION COMMANDS
     SearchItemData {
         command: "+",
         c_type: CommandType::Operation,
@@ -100,6 +103,8 @@ pub static SEARCH_ITEMS: &[SearchItemData; 37] = &[
         c_alias: None,
         desc: "Left shift a number by n bits",
     },
+    // END: OPERATION COMMANDS
+    // START: FUNCTION COMMANDS
     SearchItemData {
         command: "sqrt",
         c_type: CommandType::Function,
@@ -221,6 +226,44 @@ pub static SEARCH_ITEMS: &[SearchItemData; 37] = &[
         desc: "Bidirectional function:\n- Converts a unix timestamp to a human-readable date. Accepts a second argument for the date format.\n- Converts strings of comma-separated values or '%Y-%m-%d %H:%M:%S' format to a unix timestamp.",
     },
     SearchItemData {
+        command: "get_price_from_tick",
+        c_type: CommandType::Function,
+        c_alias: Some("get_price, price_from_tick, price_at_tick"),
+        desc: "Computes the price of a Uniswap V3 pool (in token0 or token1) given a tick value and the token decimals.",
+    },
+    SearchItemData {
+        command: "get_tick_from_sqrt_ratio",
+        c_type: CommandType::Function,
+        c_alias: Some("get_tick, tick_from_sqrt_ratio, tick_from_sqrt_x96"),
+        desc: "Computes the tick of a Uniswap V3 pool given a square root of price as a Q64.96.",
+    },
+    SearchItemData {
+        command: "get_sqrt_ratio_from_tick",
+        c_type: CommandType::Function,
+        c_alias: Some("get_sqrt_ratio, get_sqrt_x96, sqrt_ratio_from_tick, sqrt_x96_from_tick"),
+        desc: "Computes the square root of price as a Q64.96 give the tick of a Uniswap V3 pool.",
+    },
+    SearchItemData {
+        command: "get_liquidity_from_amount1",
+        c_type: CommandType::Function,
+        c_alias: Some("get_liquidity, liquidity_from_amount1"),
+        desc: "Computes the equivalent liquidity of a Uniswap V3 range given the pool's sqrtPrice, and the range's amount1, sqrtPa, and sqrtPb.",
+    },
+    SearchItemData {
+        command: "get_amount0_from_range",
+        c_type: CommandType::Function,
+        c_alias: Some("get_amount0, amount0_from_range"),
+        desc: "Computes the equivalent amount0 of a Uniswap V3 range given the pool's sqrtPrice, and the range's liquidity, sqrtPa, and sqrtPb.",
+    },
+    SearchItemData {
+        command: "get_amount1_from_range",
+        c_type: CommandType::Function,
+        c_alias: Some("get_amount0, amount0_from_range"),
+        desc: "Computes the equivalent amount1 of a Uniswap V3 range given the pool's sqrtPrice, and the range's liquidity, sqrtPa, and sqrtPb.",
+    },
+    // END: FUNCTION COMMANDS
+    // START: CONVERSION COMMANDS
+    SearchItemData {
         command: "EVM gas units",
         c_type: CommandType::Conversion,
         c_alias: Some("wei, kwei, mwei, gwei, szabo, finney, ether"),
@@ -232,6 +275,8 @@ pub static SEARCH_ITEMS: &[SearchItemData; 37] = &[
         c_alias: Some("seconds, minutes, hours, days, weeks, months, years"),
         desc: "Converts the input value to the equivalent amount. Follows the pattern: 'unit_from' to 'unit_to'.\nWhen 'unit_to' is bigger than 'unit_from', the result is rounded down.",
     },
+    // END: CONVERSION COMMANDS
+    // START: CONSTANTS
     SearchItemData {
         command: "max_uint",
         c_type: CommandType::Constant,
