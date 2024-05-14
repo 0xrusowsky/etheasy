@@ -39,15 +39,20 @@ macro_rules! get_price {
         let quote =
             utils::uniswap_v3::get_v3_quote_from_tick(tick, $decimals0, $decimals1, in_token1);
         if $format_output {
-            let units = if in_token1 { $decimals1 } else { $decimals0 };
-            let price = unwrap_or_nan!(format_units(quote, units.to_string()));
-            format!(
-                "1 {} : {} {}",
-                if in_token1 { "token0" } else { "token1" },
-                price,
-                if in_token1 { "token1" } else { "token0" },
-            )
-            .into()
+            match quote {
+                Some(quote) => {
+                    let units = if in_token1 { $decimals1 } else { $decimals0 };
+                    let price = unwrap_or_nan!(format_units(quote, units.to_string()));
+                    format!(
+                        "1 {} : {} {}",
+                        if in_token1 { "token0" } else { "token1" },
+                        price,
+                        if in_token1 { "token1" } else { "token0" },
+                    )
+                    .into()
+                }
+                None => return ParseResult::NAN,
+            }
         } else {
             quote.into()
         }
