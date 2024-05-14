@@ -79,6 +79,43 @@ debug("0xa9059cbb000000000000..0000001")  // pretty prints calldata in 32-byte w
                                           //   0000000000000000000000000000000000000000000000000000000000000001
 ```
 
+### 🦄 UniswapV3 Helper Functions
+
+Provides helper functions to easily work with UniswapV3 positions, such as converting tick to price, calculating liquidity, etc.
+
+```rs
+get_tick_from_sqrt_ratio(4295128739)      // get tick from sqrt ratio ("-887272")
+get_sqrt_ratio_from_tick(-887272)         // get tick from sqrt ratio ("4295128739")
+
+get_price_from_tick(                      // get price from tick ("1 token1 : 1540.921115 token0")
+    202919,         // tick
+    false,          // in_token1
+    6,              // token0_decimals
+    18              // token1_decimals
+)
+
+get_liquidity_from_amount1(               // get liquidity from amount1 (44928398530981124971653892)
+    1e6,            // amount1
+    5317859378      // sqrt_price_x96
+    4295128739      // sqrt_pa_x96
+    6178424788      // sqrt_pb_x96
+)
+
+get_amount0_from_liquidity(               // get amount0 from liquidity ()
+    4492...3892,    // liquidity
+    5317859378      // sqrt_price_x96
+    4295128739      // sqrt_pa_x96
+    6178424788      // sqrt_pb_x96
+)
+
+get_amount1_from_liquidity(               // get amount1 from liquidity ()
+    4492...3892,    // liquidity
+    5317859378      // sqrt_price_x96
+    4295128739      // sqrt_pa_x96
+    6178424788      // sqrt_pb_x96
+)
+```
+
 ### ✏️ String Operations
 
 Simplify common string operations, including case conversions or character counting.

@@ -94,6 +94,13 @@ impl From<U256> for ParseResult {
     }
 }
 
+impl From<i64> for ParseResult {
+    fn from(i: i64) -> Self {
+        let u = U256::from(i);
+        ParseResult::Value(u)
+    }
+}
+
 impl From<Option<U256>> for ParseResult {
     fn from(u: Option<U256>) -> Self {
         match u {

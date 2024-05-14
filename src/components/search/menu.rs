@@ -56,6 +56,7 @@ impl Component for SearchMenuComponent {
                             || item
                                 .c_alias
                                 .map_or(false, |alias| alias.contains(&self.search_query))
+                            || item.desc.to_lowercase().contains(&self.search_query)
                     })
                     .collect();
 
@@ -145,16 +146,32 @@ impl Component for SearchMenuComponent {
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
-        let filtered_cards: Vec<_> = SEARCH_ITEMS
+        // Filter based on command, type, alias, and description. Results are sorted by command, then type, then alias.
+        let mut filtered_cards: Vec<_> = SEARCH_ITEMS
             .iter()
             .filter(|item| {
                 item.command.contains(&self.search_query)
-                    || item.c_type.to_string().contains(&self.search_query)
                     || item
                         .c_alias
                         .map_or(false, |alias| alias.contains(&self.search_query))
             })
             .collect();
+        let mut filtered_cards_type: Vec<_> = SEARCH_ITEMS
+            .iter()
+            .filter(|item| {
+                item.c_type.to_string().contains(&self.search_query)
+                    && !filtered_cards.contains(&item)
+            })
+            .collect();
+        filtered_cards.append(&mut filtered_cards_type);
+        let mut filtered_cards_desc: Vec<_> = SEARCH_ITEMS
+            .iter()
+            .filter(|item| {
+                item.desc.to_lowercase().contains(&self.search_query)
+                    && !filtered_cards.contains(&item)
+            })
+            .collect();
+        filtered_cards.append(&mut filtered_cards_desc);
 
         let command_card = |index: usize, item: &SearchItemData| {
             html! {

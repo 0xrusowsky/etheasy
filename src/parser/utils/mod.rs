@@ -1,4 +1,11 @@
+pub mod uniswap_v3;
+use super::types::result::ParseResult;
+
 use alloy_core::primitives::{Address, B256, U256};
+use chrono::{NaiveDate, NaiveDateTime, NaiveTime, TimeZone, Utc};
+
+pub const ZERO: U256 = U256::from_limbs([0, 0, 0, 0]);
+pub const ONE: U256 = U256::from_limbs([1, 0, 0, 0]);
 
 pub fn trim_quotes(input: &str) -> String {
     let mut chars = input.chars();
@@ -48,11 +55,11 @@ pub fn scientific_to_u256(s: &str) -> Option<U256> {
     }
 }
 
-pub fn left_pad(s: String, width: usize) -> String {
+pub fn left_pad(s: &String, width: usize) -> String {
     format!("{:0>width$}", s, width = width)
 }
 
-pub fn right_pad(s: String, width: usize) -> String {
+pub fn right_pad(s: &String, width: usize) -> String {
     format!("{:0<width$}", s, width = width)
 }
 
@@ -117,4 +124,66 @@ pub fn split_top_level(input: &str) -> Vec<String> {
     }
 
     result
+}
+
+pub fn parse_evm_type(input: String) -> Option<String> {
+    if input.starts_with("0x") {
+        if input.len() > 1 {
+            let value = &input[2..];
+            if value.len() % 2 == 0 {
+                return Some(value.to_string());
+            } else {
+                return Some(format!("0{}", value));
+            }
+        }
+        return None;
+    }
+    None
+}
+
+pub fn parse_unix(input: String) -> i64 {
+    let input = input.replace(&['-', '/', ':', 'T'][..], ",");
+    let parts: Vec<&str> = input.split(',').collect();
+    let mut date_parts = [0 as u32; 6];
+    for (i, part) in parts.iter().enumerate() {
+        if i < date_parts.len() {
+            date_parts[i] = part.parse().unwrap_or(0) as u32;
+        }
+    }
+
+    let dt = NaiveDateTime::new(
+        NaiveDate::from_ymd(date_parts[0] as i32, date_parts[1], date_parts[2]),
+        NaiveTime::from_hms(date_parts[3], date_parts[4], date_parts[5]),
+    );
+
+    Utc.from_utc_datetime(&dt).timestamp()
+}
+
+pub fn build_unix(parts: Vec<&U256>) -> i64 {
+    let mut date_parts = [0 as u32; 6];
+    for (i, part) in parts.iter().enumerate() {
+        if i < date_parts.len() {
+            date_parts[i] = part.to_string().parse().unwrap_or(0) as u32;
+        }
+    }
+
+    let dt = NaiveDateTime::new(
+        NaiveDate::from_ymd(date_parts[0] as i32, date_parts[1], date_parts[2]),
+        NaiveTime::from_hms(date_parts[3], date_parts[4], date_parts[5]),
+    );
+
+    Utc.from_utc_datetime(&dt).timestamp()
+}
+
+pub fn format_unix(u: U256, s_format: Option<String>) -> ParseResult {
+    let unix_timestamp: i64 = match u.to_string().parse() {
+        Ok(v) => v,
+        Err(_) => return ParseResult::NAN,
+    };
+    let datetime = NaiveDateTime::from_timestamp(unix_timestamp, 0);
+    let output = match s_format {
+        Some(format) => datetime.format(&format).to_string(),
+        None => datetime.format("%Y-%m-%d %H:%M:%S").to_string(),
+    };
+    ParseResult::String(trim_quotes(&output))
 }
