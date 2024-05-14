@@ -1,18 +1,22 @@
 #![allow(deprecated)]
 mod convert_chart;
+
+#[macro_use]
+mod macros;
+
 pub mod types;
 pub mod utils;
 use crate::components::playground::block::BlockState;
 use convert_chart::{convert, UnitType};
 use types::{abi::*, result::*};
-use utils::*;
+use utils::{uniswap_v3::*, *};
 
 use alloy_core::primitives::{
     utils::{format_ether, format_units, keccak256},
     B256, U256,
 };
 use base64::{engine::general_purpose::URL_SAFE, Engine as _};
-use chrono::{NaiveDate, NaiveDateTime, NaiveTime, TimeZone, Utc};
+use chrono::Utc;
 use gloo_console::log;
 use pest::{
     iterators::{Pair, Pairs},
@@ -92,57 +96,16 @@ fn eval(expression: Pairs<Rule>, unchecked: bool, blocks: &Vec<BlockState>) -> P
                     ParseResult::NAN
                 }
             }
-            Rule::function_val => {
-                let mut i = pair.into_inner();
-                let name = i.next().unwrap().as_str();
-                match name {
-                    "unchecked" => eval(i, true, blocks),
-                    "get_sqrt_ratio_from_tick"
-                    | "get_sqrt_x96_from_tick"
-                    | "get_sqrt_ratio_at_tick"
-                    | "get_sqrt_x96_at_tick"
-                    | "sqrt_ratio_from_tick"
-                    | "sqrt_x96_from_tick"
-                    | "sqrt_ratio_at_tick"
-                    | "sqrt_x96_at_tick"
-                    | "get_sqrt_ratio"
-                    | "get_sqrt_x96" => match i.as_str().parse::<i32>() {
-                        Ok(v) => match uniswap_v3_math::tick_math::get_sqrt_ratio_at_tick(v) {
-                            Ok(v) => v.into(),
-                            Err(e) => {
-                                log!("Error getting sqrtX96 from tick: {}", e.to_string());
-                                ParseResult::NAN
-                            }
-                        },
-                        Err(e) => {
-                            log!("Error parsing tick: {}", e.to_string());
-                            ParseResult::NAN
-                        }
-                    },
-                    _ => match eval(i, unchecked, blocks) {
-                        ParseResult::Value(value) => utility_fn_val(name, value),
-                        ParseResult::String(s) => utility_fn_str(name, &s),
-                        _ => ParseResult::NAN,
-                    },
-                }
-            }
-            Rule::function_str => {
-                let mut i = pair.into_inner();
-                let name = i.next().unwrap().as_str();
-                if name.starts_with("unix") {
-                    match parse_encoded_utility_fn(name, "unix") {
-                        Some(value) => utility_fn_str("unix", &value),
-                        None => ParseResult::NAN,
-                    }
-                } else {
-                    let value = i.next().unwrap().as_str();
-                    utility_fn_str(name, value)
-                }
-            }
-            Rule::function_args => {
-                let mut i = pair.into_inner();
-                let name = i.next().unwrap().as_str();
-                utility_fn_args(name, i, unchecked, blocks)
+            Rule::function => {
+                let mut pairs = pair.into_inner();
+                let func = pairs.next().unwrap().as_str();
+                let args = pairs
+                    .map(|pair| match pair.as_rule() {
+                        Rule::quote => trim_quotes(pair.as_str()).into(),
+                        _ => eval(pair.into_inner(), unchecked, blocks),
+                    })
+                    .collect::<Vec<ParseResult>>();
+                utility_fn_args(func, args)
             }
             Rule::now => U256::from(Utc::now().timestamp()).into(),
             Rule::addr_zero => String::from("0x0000000000000000000000000000000000000000").into(),
@@ -151,9 +114,11 @@ fn eval(expression: Pairs<Rule>, unchecked: bool, blocks: &Vec<BlockState>) -> P
                 .ok()
                 .into(),
             Rule::num => {
-                let value_str = pair.as_str().trim();
+                let value_str = pair.as_str().trim().to_lowercase();
                 if value_str.contains("e") {
-                    scientific_to_u256(value_str).into()
+                    scientific_to_u256(&value_str).into()
+                } else if value_str.starts_with("-") {
+                    value_str.into()
                 } else {
                     value_str.parse::<U256>().ok().into()
                 }
@@ -180,9 +145,15 @@ fn eval(expression: Pairs<Rule>, unchecked: bool, blocks: &Vec<BlockState>) -> P
             Rule::expr => eval(pair.into_inner(), unchecked, blocks),
             Rule::ident => {
                 let id = pair.as_str().trim();
-                match blocks.iter().find(|b| b.get_id() == id) {
-                    Some(block) => block.get_result().into(),
-                    None => ParseResult::NAN,
+                if id == "true" {
+                    U256::from(1).into()
+                } else if id == "false" {
+                    U256::from(0).into()
+                } else {
+                    match blocks.iter().find(|b| b.get_id() == id) {
+                        Some(block) => block.get_result().into(),
+                        None => ParseResult::NAN,
+                    }
                 }
             }
             _ => ParseResult::NAN,
@@ -227,13 +198,7 @@ fn eval(expression: Pairs<Rule>, unchecked: bool, blocks: &Vec<BlockState>) -> P
                     }
                 }
                 Rule::rightShift => {
-                    let shift: usize = match rhs.try_into() {
-                        Ok(v) => v,
-                        Err(e) => {
-                            eprintln!("Error converting to usize: {}", e);
-                            return ParseResult::NAN;
-                        }
-                    };
+                    let shift: usize = unwrap_or_nan!(rhs.try_into());
                     if unchecked {
                         let (result, _) = lhs.overflowing_shr(shift);
                         result.into()
@@ -242,13 +207,7 @@ fn eval(expression: Pairs<Rule>, unchecked: bool, blocks: &Vec<BlockState>) -> P
                     }
                 }
                 Rule::leftShift => {
-                    let shift: usize = match rhs.try_into() {
-                        Ok(v) => v,
-                        Err(e) => {
-                            eprintln!("Error converting to usize: {}", e);
-                            return ParseResult::NAN;
-                        }
-                    };
+                    let shift: usize = unwrap_or_nan!(rhs.try_into());
                     if unchecked {
                         let (result, _) = lhs.overflowing_shl(shift);
                         result.into()
@@ -263,428 +222,283 @@ fn eval(expression: Pairs<Rule>, unchecked: bool, blocks: &Vec<BlockState>) -> P
     )
 }
 
-fn utility_fn_str(input: &str, value: &str) -> ParseResult {
-    let value = trim_quotes(value);
-    match input {
-        // evm utils
-        "bytes32" => match parse_evm_type(value) {
-            Some(value) => value.parse::<B256>().unwrap_or_default().to_string().into(),
-            None => ParseResult::NAN,
-        },
-        "address" | "addr" | "checksum" => {
-            let u = value.parse::<U256>().unwrap_or_default();
-            u256_to_address(u).to_string().into()
-        }
-        "keccak256" | "sha3" => keccak256(value).to_string().into(),
-        "selector" => keccak256(value.replace(' ', "")).to_string()[..10]
-            .to_string()
-            .into(),
-        "debug" => {
-            let (prefix, start) = if value.starts_with("0x") {
-                match value.len() % 64 {
-                    2 => (true, 2),
-                    10 => (true, 10),
-                    _ => (true, value.len()),
-                }
-            } else {
-                match value.len() % 64 {
-                    0 => (false, 0),
-                    8 => (false, 8),
-                    _ => (false, value.len()),
-                }
-            };
-            let mut formatted = if prefix {
-                format!("0x\n{}", &value[2..start])
-            } else {
-                value[..start].to_string()
-            };
-            for i in (start..value.len()).step_by(64) {
-                let end = std::cmp::min(i + 64, value.len());
-                formatted = format!("{}\n{}", formatted, &value[i..end]);
-            }
-            formatted.into()
-        }
-        "guess_selector" | "fn_from_selector" => "to do".into(),
-        // string manipulation
-        "len" | "chars" => U256::from(value.len()).into(),
-        "lowercase" | "lower" => value.to_lowercase().into(),
-        "uppercase" | "upper" => value.to_uppercase().into(),
-        "base64_encode" | "b64encode" | "b64_encode" => URL_SAFE.encode(value).into(),
-        "base64_decode" | "b64decode" | "b64_decode" => match URL_SAFE.decode(value) {
-            Ok(v) => String::from_utf8(v).ok().into(),
-            Err(e) => {
-                log!("Error decoding base64:", e.to_string());
-                ParseResult::NAN
-            }
-        },
-        // miscelaneous
-        "unix" => U256::from(parse_unix(value)).into(),
-        _ => ParseResult::NAN,
-    }
-}
+const GET_TICK: &[&str] = &[
+    "get_tick_from_sqrt_ratio",
+    "get_tick_from_sqrt_x96",
+    "get_tick_at_sqrt_ratio",
+    "tick_from_sqrt_ratio",
+    "tick_from_sqrt_x96",
+    "tick_at_sqrt_ratio",
+    "get_tick_at_sqrt_x96",
+    "get_tick",
+];
 
-fn utility_fn_val(input: &str, value: U256) -> ParseResult {
-    match input {
-        // evm utils
-        "bytes32" => B256::from(value).to_string().into(),
-        "address" | "addr" | "checksum" => u256_to_address(value).to_string().into(),
-        "sqrt" => value.root(2).into(),
-        // miscelaneous
-        "format_units" | "format_ether" => format_ether(value).into(),
-        "unix" => format_unix(value, None),
-        // uniswap v3 utils
-        "get_tick_from_sqrt_ratio"
-        | "get_tick_from_sqrt_x96"
-        | "get_tick_at_sqrt_ratio"
-        | "get_tick_at_sqrt_x96"
-        | "tick_from_sqrt_ratio"
-        | "tick_from_sqrt_x96"
-        | "tick_at_sqrt_ratio"
-        | "tick_at_sqrt_x96"
-        | "get_tick" => match uniswap_v3_math::tick_math::get_tick_at_sqrt_ratio(value) {
-            Ok(v) => v.to_string().into(),
-            Err(e) => {
-                gloo_console::log!("Error getting tick from sqrtX96:", e.to_string());
-                ParseResult::NAN
-            }
-        },
-        _ => ParseResult::NAN,
-    }
-}
+const GET_SQRT_RATIO: &[&str] = &[
+    "get_sqrt_ratio_from_tick",
+    "get_sqrt_x96_from_tick",
+    "get_sqrt_ratio_at_tick",
+    "get_sqrt_x96_at_tick",
+    "sqrt_ratio_from_tick",
+    "sqrt_x96_from_tick",
+    "sqrt_ratio_at_tick",
+    "sqrt_x96_at_tick",
+    "get_sqrt_ratio",
+    "get_sqrt_x96",
+];
 
-fn utility_fn_args(
-    input: &str,
-    mut pairs: Pairs<Rule>,
-    unchecked: bool,
-    blocks: &Vec<BlockState>,
-) -> ParseResult {
-    let value = pairs.next().unwrap();
-    let value_str = value.clone().as_str();
-    let value_inner = value.into_inner();
-    // if value is a quote, value_inner will be empty
-    if value_inner.len() == 0 {
-        let value_str = trim_quotes(value_str);
-        let args = trim_quotes(pairs.next().unwrap().as_str());
-        match input {
-            "count" => U256::from(count_chars(&value_str, &args)).into(),
-            "left_pad" | "lpad" => match args.parse::<u8>() {
-                Ok(v) => utils::left_pad(value_str, v.into()).into(),
-                Err(e) => {
-                    log!("Error parsing left_pad args", e.to_string());
-                    ParseResult::NAN
-                }
-            },
-            "right_pad" | "rpad" => match args.parse::<u8>() {
-                Ok(v) => utils::right_pad(value_str, v.into()).into(),
-                Err(e) => {
-                    log!("Error parsing right_pad args", e.to_string());
-                    ParseResult::NAN
-                }
-            },
-            "abi_decode" => match abi_process_and_decode_calldata(&value_str, &args) {
-                (Some(selector), Ok(decoded)) => {
-                    match serde_json::to_value(&decoded) {
-                        Ok(mut json) => {
-                            // Convert serde_json::Value into Vec<serde_json::Value>
-                            if let Some(array) = json.as_array_mut() {
-                                array.insert(0, serde_json::to_value(&selector).unwrap());
-                            }
-                            // Convert Vec<serde_json::Value> back into serde_json::Value
-                            let json = serde_json::Value::Array(json.as_array().unwrap().clone());
-                            json.into()
-                        }
-                        Err(_) => ParseResult::NAN,
-                    }
-                }
-                (None, Ok(decoded)) => match serde_json::to_value(&decoded) {
-                    Ok(json) => json.into(),
-                    Err(_) => ParseResult::NAN,
+const GET_PRICE: &[&str] = &[
+    "get_price_from_tick",
+    "get_price_at_tick",
+    "price_from_tick",
+    "price_at_tick",
+    "get_price",
+];
+
+const GET_QUOTE: &[&str] = &[
+    "get_quote_from_tick",
+    "get_quote_at_tick",
+    "quote_from_tick",
+    "quote_at_tick",
+    "get_quote",
+];
+
+const GET_LIQUIDITY: &[&str] = &[
+    "get_liquidity_from_total_amount1",
+    "liquidity_from_total_amount1",
+    "get_liquidity",
+];
+
+const GET_AMOUNT1: &[&str] = &[
+    "get_total_amount1_from_liquidity",
+    "total_amount1_from_liquidity",
+    "get_total_amount1",
+];
+
+const GET_AMOUNT0: &[&str] = &[
+    "get_amount0_from_liquidity",
+    "get_amount0_from_range",
+    "amount0_from_liquidity",
+    "amount0_from_range",
+    "get_amount0",
+];
+
+fn utility_fn_args(func: &str, args: Vec<ParseResult>) -> ParseResult {
+    match args.len() {
+        1 => match &args[0] {
+            ParseResult::String(arg0) => match func {
+                // evm utils
+                "bytes32" => match parse_evm_type(arg0.to_owned()) {
+                    Some(arg0) => arg0.parse::<B256>().unwrap_or_default().to_string().into(),
+                    None => ParseResult::NAN,
                 },
-                (_, Err(_)) => ParseResult::NAN,
-            },
-            "abi_encode" => {
-                let args = split_top_level(trim_parentheses(&args));
-                match abi_encode(&value_str, args, false) {
-                    Ok(encoded) => encoded.into(),
-                    Err(_) => ParseResult::NAN,
+                "address" | "addr" | "checksum" => {
+                    let u = arg0.parse::<U256>().unwrap_or_default();
+                    u256_to_address(u).to_string().into()
                 }
-            }
-            "abi_encode_with_sig" | "abi_encode_with_selector" => {
-                let args = args
-                    .split(",")
-                    .into_iter()
-                    .map(|s| s.trim().to_owned())
-                    .collect();
-                match abi_encode(&value_str, args, true) {
-                    Ok(encoded) => encoded.into(),
-                    Err(_) => ParseResult::NAN,
+                "keccak256" | "sha3" => keccak256(arg0).to_string().into(),
+                "selector" => keccak256(arg0.replace(' ', "")).to_string()[..10]
+                    .to_string()
+                    .into(),
+                "debug" => {
+                    let (prefix, start) = if arg0.starts_with("0x") {
+                        match arg0.len() % 64 {
+                            2 => (true, 2),
+                            10 => (true, 10),
+                            _ => (true, arg0.len()),
+                        }
+                    } else {
+                        match arg0.len() % 64 {
+                            0 => (false, 0),
+                            8 => (false, 8),
+                            _ => (false, arg0.len()),
+                        }
+                    };
+                    let mut formatted = if prefix {
+                        format!("0x\n{}", &arg0[2..start])
+                    } else {
+                        arg0[..start].to_string()
+                    };
+                    for i in (start..arg0.len()).step_by(64) {
+                        let end = std::cmp::min(i + 64, arg0.len());
+                        formatted = format!("{}\n{}", formatted, &arg0[i..end]);
+                    }
+                    formatted.into()
+                }
+                "guess_selector" | "fn_from_selector" => "to do".into(),
+                // string manipulation
+                "len" | "chars" => U256::from(arg0.len()).into(),
+                "lowercase" | "lower" => arg0.to_lowercase().into(),
+                "uppercase" | "upper" => arg0.to_uppercase().into(),
+                "base64_encode" | "b64encode" | "b64_encode" => URL_SAFE.encode(arg0).into(),
+                "base64_decode" | "b64decode" | "b64_decode" => match URL_SAFE.decode(arg0) {
+                    Ok(v) => String::from_utf8(v).ok().into(),
+                    Err(e) => {
+                        log!("Error decoding base64:", e.to_string());
+                        ParseResult::NAN
+                    }
+                },
+                // uniswap v3 utils
+                x if is_command!(x, GET_SQRT_RATIO) => {
+                    let tick = unwrap_or_nan!(arg0.parse::<i32>());
+                    let sqrt_x96 =
+                        unwrap_or_nan!(uniswap_v3_math::tick_math::get_sqrt_ratio_at_tick(tick));
+                    sqrt_x96.into()
+                }
+                // miscelaneous
+                "unix" => U256::from(parse_unix(arg0.to_owned())).into(),
+                _ => ParseResult::NAN,
+            },
+            ParseResult::Value(arg0) => match func {
+                // evm utils
+                "bytes32" => B256::from(*arg0).to_string().into(),
+                "address" | "addr" | "checksum" => u256_to_address(*arg0).to_string().into(),
+                "sqrt" => arg0.root(2).into(),
+                // uniswap v3 utils
+                x if is_command!(x, GET_TICK) => unwrap_or_nan!(
+                    uniswap_v3_math::tick_math::get_tick_at_sqrt_ratio(*arg0),
+                    "Error getting tick from sqrtX96"
+                )
+                .to_string()
+                .into(),
+                x if is_command!(x, GET_SQRT_RATIO) => {
+                    let tick = unwrap_or_nan!(arg0.to_string().parse::<i32>());
+                    let sqrt_x96 =
+                        unwrap_or_nan!(uniswap_v3_math::tick_math::get_sqrt_ratio_at_tick(tick));
+                    sqrt_x96.into()
+                }
+                // miscelaneous
+                "format_units" | "format_ether" => format_ether(*arg0).into(),
+                "unix" => format_unix(*arg0, None),
+                _ => ParseResult::NAN,
+            },
+            _ => ParseResult::NAN,
+        },
+        2 => match (&args[0], &args[1]) {
+            (ParseResult::String(arg0), ParseResult::String(arg1)) => match func {
+                "count" => U256::from(count_chars(&arg0, &arg1)).into(),
+                "abi_encode" => {
+                    let args = split_top_level(trim_parentheses(&arg1));
+                    unwrap_or_nan!(abi_encode(&arg0, args, false)).into()
+                }
+                "abi_encode_with_sig" | "abi_encode_with_selector" => {
+                    let args = arg1
+                        .split(",")
+                        .into_iter()
+                        .map(|s| s.trim().to_owned())
+                        .collect();
+                    unwrap_or_nan!(abi_encode(&arg0, args, true)).into()
+                }
+                "abi_decode" => match abi_process_and_decode_calldata(&arg0, &arg1) {
+                    (Some(selector), Ok(decoded)) => {
+                        match serde_json::to_value(&decoded) {
+                            Ok(mut json) => {
+                                // Convert serde_json::Value into Vec<serde_json::Value>
+                                if let Some(array) = json.as_array_mut() {
+                                    array.insert(0, serde_json::to_value(&selector).unwrap());
+                                }
+                                // Convert Vec<serde_json::Value> back into serde_json::Value
+                                let json =
+                                    serde_json::Value::Array(json.as_array().unwrap().clone());
+                                json.into()
+                            }
+                            Err(_) => ParseResult::NAN,
+                        }
+                    }
+                    (None, Ok(decoded)) => match serde_json::to_value(&decoded) {
+                        Ok(json) => json.into(),
+                        Err(_) => ParseResult::NAN,
+                    },
+                    (_, Err(_)) => ParseResult::NAN,
+                },
+                _ => ParseResult::NAN,
+            },
+            (ParseResult::String(arg0), ParseResult::Value(arg1)) => match func {
+                "left_pad" | "lpad" => {
+                    let units: usize = unwrap_or_nan!(arg1.to_string().parse::<u8>()).into();
+                    utils::left_pad(arg0, units).into()
+                }
+                "right_pad" | "rpad" => {
+                    let units: usize = unwrap_or_nan!(arg1.to_string().parse::<u8>()).into();
+                    utils::right_pad(arg0, units).into()
+                }
+                _ => ParseResult::NAN,
+            },
+            (ParseResult::Value(arg0), ParseResult::Value(arg1)) => match func {
+                "root" => arg0.root(arg1.to_string().parse().unwrap_or(2)).into(),
+                "format_units" => format_units(*arg0, arg1.to_string()).ok().into(),
+                _ => ParseResult::NAN,
+            },
+            _ => ParseResult::NAN,
+        },
+        3 => match (&args[0], &args[1], &args[2]) {
+            (ParseResult::Value(arg0), ParseResult::Value(arg1), ParseResult::Value(arg2)) => {
+                match func {
+                    "unix" => build_unix(vec![arg0, arg1, arg2]).into(),
+                    _ => ParseResult::NAN,
                 }
             }
             _ => ParseResult::NAN,
-        }
-    } else {
-        if value_str.starts_with("-") {
-            let args = pairs.next().unwrap().as_str();
-            match input {
-                "price_from_tick" => match value_str.to_string().parse::<i32>() {
-                    Ok(tick) => {
-                        if pairs.len() < 2 {
-                            gloo_console::log!("decimals0 and decimals1 are required");
-                            return ParseResult::NAN;
-                        }
-                        let in_token1 = match args.parse::<bool>() {
-                            Ok(in_token1) => in_token1,
-                            Err(_) => return ParseResult::NAN,
-                        };
-                        let decimals0 =
-                            match eval(pairs.next().unwrap().into_inner(), unchecked, blocks) {
-                                ParseResult::Value(v) => v,
-                                _ => return ParseResult::NAN,
-                            };
-                        let decimals1 =
-                            match eval(pairs.next().unwrap().into_inner(), unchecked, blocks) {
-                                ParseResult::Value(v) => v,
-                                _ => return ParseResult::NAN,
-                            };
-                        let quote =
-                            utils::get_v3_quote_from_tick(tick, decimals0, decimals1, in_token1);
-                        let units = if in_token1 { decimals0 } else { decimals1 };
-                        format_units(quote, units.to_string()).ok().into()
-                    }
-                    Err(_) => ParseResult::NAN,
-                },
-                _ => ParseResult::NAN,
-            }
-        } else {
-            match eval(value_inner, unchecked, blocks) {
-                ParseResult::Value(value) => {
-                    let args = pairs.next().unwrap().as_str();
-                    match input {
-                        "root" => value.root(args.parse().unwrap_or(2)).into(),
-                        "format_units" => format_units(value, args).ok().into(),
-                        "unix" => format_unix(value, Some(args.to_string())),
-                        "get_price_from_tick"
-                        | "get_price_at_tick"
-                        | "price_from_tick"
-                        | "price_at_tick"
-                        | "get_price"
-                        | "get_price" => match value.to_string().parse::<i32>() {
-                            Ok(tick) => {
-                                if pairs.len() < 2 {
-                                    gloo_console::log!("decimals0 and decimals1 are required");
-                                    return ParseResult::NAN;
-                                }
-                                let in_token1 = match args.parse::<bool>() {
-                                    Ok(in_token1) => in_token1,
-                                    Err(_) => return ParseResult::NAN,
-                                };
-                                let decimals0 = match eval(
-                                    pairs.next().unwrap().into_inner(),
-                                    unchecked,
-                                    blocks,
-                                ) {
-                                    ParseResult::Value(v) => v,
-                                    _ => return ParseResult::NAN,
-                                };
-                                let decimals1 = match eval(
-                                    pairs.next().unwrap().into_inner(),
-                                    unchecked,
-                                    blocks,
-                                ) {
-                                    ParseResult::Value(v) => v,
-                                    _ => return ParseResult::NAN,
-                                };
-                                let quote = utils::get_v3_quote_from_tick(
-                                    tick, decimals0, decimals1, in_token1,
-                                );
-                                let units = if in_token1 { decimals1 } else { decimals0 };
-                                match format_units(quote, units.to_string()) {
-                                    Ok(s) => format!(
-                                        "1 {} : {} {}",
-                                        if in_token1 { "token0" } else { "token1" },
-                                        s,
-                                        if in_token1 { "token1" } else { "token0" },
-                                    )
-                                    .into(),
-                                    Err(_) => ParseResult::NAN,
-                                }
-                            }
-                            Err(_) => ParseResult::NAN,
-                        },
-                        "get_quote_from_tick"
-                        | "get_quote_at_tick"
-                        | "quote_from_tick"
-                        | "quote_at_tick"
-                        | "get_quote" => match value.to_string().parse::<i32>() {
-                            Ok(tick) => {
-                                if pairs.len() < 2 {
-                                    gloo_console::log!("decimals0 and decimals1 are required");
-                                    return ParseResult::NAN;
-                                }
-                                let in_token1 = match args.parse::<bool>() {
-                                    Ok(in_token1) => in_token1,
-                                    Err(_) => return ParseResult::NAN,
-                                };
-                                let decimals0 = match eval(
-                                    pairs.next().unwrap().into_inner(),
-                                    unchecked,
-                                    blocks,
-                                ) {
-                                    ParseResult::Value(v) => v,
-                                    _ => return ParseResult::NAN,
-                                };
-                                let decimals1 = match eval(
-                                    pairs.next().unwrap().into_inner(),
-                                    unchecked,
-                                    blocks,
-                                ) {
-                                    ParseResult::Value(v) => v,
-                                    _ => return ParseResult::NAN,
-                                };
-                                utils::get_v3_quote_from_tick(tick, decimals0, decimals1, in_token1)
-                                    .into()
-                            }
-                            Err(_) => ParseResult::NAN,
-                        },
-                        "get_liquidity_from_amount1"
-                        | "liquidity_from_amount1"
-                        | "get_liquidity" => {
-                            let sqrt_price = args.parse::<U256>().unwrap();
-                            if pairs.len() < 2 {
-                                gloo_console::log!("sqrt_pa and sqrt_pb are required");
-                                return ParseResult::NAN;
-                            }
-                            let sqrt_pa =
-                                match eval(pairs.next().unwrap().into_inner(), unchecked, blocks) {
-                                    ParseResult::Value(v) => v,
-                                    _ => {
-                                        gloo_console::log!("sqrt_pa is not a number");
-                                        return ParseResult::NAN;
-                                    }
-                                };
-                            let sqrt_pb =
-                                match eval(pairs.next().unwrap().into_inner(), unchecked, blocks) {
-                                    ParseResult::Value(v) => v,
-                                    _ => {
-                                        gloo_console::log!("sqrt_pb is not a number");
-                                        return ParseResult::NAN;
-                                    }
-                                };
-                            utils::get_v3_liquidity(value, sqrt_price, sqrt_pa, sqrt_pb).into()
-                        }
-                        "get_amount0_from_range" | "amount0_from_range" | "get_amount0" => {
-                            let sqrt_price = args.parse::<U256>().unwrap();
-                            if pairs.len() < 2 {
-                                gloo_console::log!("sqrt_pa and sqrt_pb are required");
-                                return ParseResult::NAN;
-                            }
-                            let sqrt_pa =
-                                match eval(pairs.next().unwrap().into_inner(), unchecked, blocks) {
-                                    ParseResult::Value(v) => v,
-                                    _ => {
-                                        gloo_console::log!("sqrt_pa is not a number");
-                                        return ParseResult::NAN;
-                                    }
-                                };
-                            let sqrt_pb =
-                                match eval(pairs.next().unwrap().into_inner(), unchecked, blocks) {
-                                    ParseResult::Value(v) => v,
-                                    _ => {
-                                        gloo_console::log!("sqrt_pb is not a number");
-                                        return ParseResult::NAN;
-                                    }
-                                };
-                            utils::get_amount0_from_v3_range(value, sqrt_price, sqrt_pa, sqrt_pb)
-                                .into()
-                        }
-                        "get_amount1_from_range" | "amount1_from_range" | "get_amount1" => {
-                            let sqrt_price = args.parse::<U256>().unwrap();
-                            if pairs.len() < 2 {
-                                gloo_console::log!("sqrt_pa and sqrt_pb are required");
-                                return ParseResult::NAN;
-                            }
-                            let sqrt_pa =
-                                match eval(pairs.next().unwrap().into_inner(), unchecked, blocks) {
-                                    ParseResult::Value(v) => v,
-                                    _ => {
-                                        gloo_console::log!("sqrt_pa is not a number");
-                                        return ParseResult::NAN;
-                                    }
-                                };
-                            let sqrt_pb =
-                                match eval(pairs.next().unwrap().into_inner(), unchecked, blocks) {
-                                    ParseResult::Value(v) => v,
-                                    _ => {
-                                        gloo_console::log!("sqrt_pb is not a number");
-                                        return ParseResult::NAN;
-                                    }
-                                };
-                            utils::get_amount1_from_v3_range(value, sqrt_price, sqrt_pa, sqrt_pb)
-                                .into()
-                        }
-                        _ => ParseResult::NAN,
-                    }
+        },
+        4 => match (&args[0], &args[1], &args[2], &args[3]) {
+            (
+                ParseResult::Value(arg0),
+                ParseResult::Value(arg1),
+                ParseResult::Value(arg2),
+                ParseResult::Value(arg3),
+            ) => match func {
+                x if is_command!(x, GET_PRICE) => get_price!(*arg0, *arg1, *arg2, *arg3, true),
+                x if is_command!(x, GET_QUOTE) => get_price!(*arg0, *arg1, *arg2, *arg3, false),
+                x if is_command!(x, GET_LIQUIDITY) => {
+                    get_v3_liquidity(*arg0, *arg1, *arg2, *arg3).into()
                 }
+                x if is_command!(x, GET_AMOUNT0) => {
+                    get_amount0_from_v3_range(*arg0, *arg1, *arg2, *arg3).into()
+                }
+                x if is_command!(x, GET_AMOUNT1) => {
+                    get_amount1_from_v3_range(*arg0, *arg1, *arg2, *arg3).into()
+                }
+                "unix" => build_unix(vec![arg0, arg1, arg2, arg3]).into(),
                 _ => ParseResult::NAN,
-            }
-        }
+            },
+            (
+                ParseResult::String(arg0), // negative ticks are parsed as strings
+                ParseResult::Value(arg1),
+                ParseResult::Value(arg2),
+                ParseResult::Value(arg3),
+            ) => match func {
+                x if is_command!(x, GET_PRICE) => get_price!(*arg0, *arg1, *arg2, *arg3, true),
+                x if is_command!(x, GET_QUOTE) => get_price!(*arg0, *arg1, *arg2, *arg3, false),
+                _ => ParseResult::NAN,
+            },
+            _ => ParseResult::NAN,
+        },
+        5 => match (&args[0], &args[1], &args[2], &args[3], &args[4]) {
+            (
+                ParseResult::Value(arg0),
+                ParseResult::Value(arg1),
+                ParseResult::Value(arg2),
+                ParseResult::Value(arg3),
+                ParseResult::Value(arg4),
+            ) => match func {
+                "unix" => build_unix(vec![arg0, arg1, arg2, arg3, arg4]).into(),
+                _ => ParseResult::NAN,
+            },
+            _ => ParseResult::NAN,
+        },
+        6 => match (&args[0], &args[1], &args[2], &args[3], &args[4], &args[5]) {
+            (
+                ParseResult::Value(arg0),
+                ParseResult::Value(arg1),
+                ParseResult::Value(arg2),
+                ParseResult::Value(arg3),
+                ParseResult::Value(arg4),
+                ParseResult::Value(arg5),
+            ) => match func {
+                "unix" => build_unix(vec![arg0, arg1, arg2, arg3, arg4, arg5]).into(),
+                _ => ParseResult::NAN,
+            },
+            _ => ParseResult::NAN,
+        },
+        _ => ParseResult::NAN,
     }
-}
-
-fn parse_encoded_utility_fn(input: &str, name: &str) -> Option<String> {
-    if input.starts_with(name) {
-        let start = name.len() + 1;
-        let end = input.len() - 1;
-        if input.len() > start {
-            let value = &input[start..end];
-            return Some(value.to_owned());
-        }
-    }
-    None
-}
-
-fn parse_evm_type(input: String) -> Option<String> {
-    if input.starts_with("0x") {
-        if input.len() > 1 {
-            let value = &input[2..];
-            if value.len() % 2 == 0 {
-                return Some(value.to_string());
-            } else {
-                return Some(format!("0{}", value));
-            }
-        }
-        return None;
-    }
-    None
-}
-
-fn parse_unix(input: String) -> i64 {
-    let input = input.replace(&['-', '/', ':', 'T'][..], ",");
-    let parts: Vec<&str> = input.split(',').collect();
-    let mut date_parts = [0 as u32; 6];
-    for (i, part) in parts.iter().enumerate() {
-        if i < date_parts.len() {
-            date_parts[i] = part.parse().unwrap_or(0) as u32;
-        }
-    }
-
-    let dt = NaiveDateTime::new(
-        NaiveDate::from_ymd(date_parts[0] as i32, date_parts[1], date_parts[2]),
-        NaiveTime::from_hms(date_parts[3], date_parts[4], date_parts[5]),
-    );
-
-    Utc.from_utc_datetime(&dt).timestamp()
-}
-
-fn format_unix(u: U256, s_format: Option<String>) -> ParseResult {
-    let unix_timestamp: i64 = match u.to_string().parse() {
-        Ok(v) => v,
-        Err(_) => return ParseResult::NAN,
-    };
-    let datetime = NaiveDateTime::from_timestamp(unix_timestamp, 0);
-    let output = match s_format {
-        Some(format) => datetime.format(&format).to_string(),
-        None => datetime.format("%Y-%m-%d %H:%M:%S").to_string(),
-    };
-    ParseResult::String(trim_quotes(&output))
 }
