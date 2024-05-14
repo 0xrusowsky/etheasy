@@ -231,6 +231,7 @@ const GET_TICK: &[&str] = &[
     "tick_at_sqrt_ratio",
     "get_tick_at_sqrt_x96",
     "get_tick",
+    "tick",
 ];
 
 const GET_SQRT_RATIO: &[&str] = &[
@@ -244,6 +245,8 @@ const GET_SQRT_RATIO: &[&str] = &[
     "sqrt_x96_at_tick",
     "get_sqrt_ratio",
     "get_sqrt_x96",
+    "sqrt_ratio",
+    "sqrt_x96",
 ];
 
 const GET_PRICE: &[&str] = &[
