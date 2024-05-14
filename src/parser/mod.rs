@@ -282,6 +282,22 @@ const GET_AMOUNT0: &[&str] = &[
     "get_amount0",
 ];
 
+const GET_BOTH_LOWER: &[&str] = &[
+    "get_lower_tick_and_sqrt_ratio",
+    "get_lower_sqrt_ratio_and_tick",
+    "get_lower_sqrt_ratio_both",
+    "get_lower_tick_both",
+    "get_lower_both",
+];
+
+const GET_BOTH_UPPER: &[&str] = &[
+    "get_upper_tick_and_sqrt_ratio",
+    "get_upper_sqrt_ratio_and_tick",
+    "get_upper_sqrt_ratio_both",
+    "get_upper_tick_both",
+    "get_upper_both",
+];
+
 fn utility_fn_args(func: &str, args: Vec<ParseResult>) -> ParseResult {
     match args.len() {
         1 => match &args[0] {
@@ -434,6 +450,22 @@ fn utility_fn_args(func: &str, args: Vec<ParseResult>) -> ParseResult {
             (ParseResult::Value(arg0), ParseResult::Value(arg1), ParseResult::Value(arg2)) => {
                 match func {
                     "unix" => build_unix(vec![arg0, arg1, arg2]).into(),
+                    "get_lower_tick" => match get_lower_tick(*arg0, *arg1, *arg2) {
+                        Some(tick) => tick.to_string().into(),
+                        None => ParseResult::NAN,
+                    },
+                    "get_upper_tick" => match get_upper_tick(*arg0, *arg1, *arg2) {
+                        Some(tick) => tick.to_string().into(),
+                        None => ParseResult::NAN,
+                    },
+                    "get_lower_sqrt_ratio" => get_lower_sqrt_price(*arg0, *arg1, *arg2).into(),
+                    "get_upper_sqrt_ratio" => get_lower_sqrt_price(*arg0, *arg1, *arg2).into(),
+                    x if is_command!(x, GET_BOTH_LOWER) => {
+                        get_both_lower(*arg0, *arg1, *arg2).into()
+                    }
+                    x if is_command!(x, GET_BOTH_UPPER) => {
+                        get_both_upper(*arg0, *arg1, *arg2).into()
+                    }
                     _ => ParseResult::NAN,
                 }
             }

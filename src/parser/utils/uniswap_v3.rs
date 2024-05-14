@@ -1,6 +1,7 @@
 use alloy_core::primitives::U256;
-use uniswap_v3_math::full_math::mul_div_rounding_up;
+use uniswap_v3_math::{full_math::mul_div_rounding_up, tick_math::get_tick_at_sqrt_ratio};
 
+const ZERO: U256 = U256::from_limbs([0, 0, 0, 0]);
 const TWO: U256 = U256::from_limbs([2, 0, 0, 0]);
 const Q96: U256 = uniswap_v3_math::sqrt_price_math::Q96;
 const MIN_TICK: i32 = uniswap_v3_math::tick_math::MIN_TICK;
@@ -48,7 +49,7 @@ pub fn get_v3_quote_from_tick(
 }
 
 pub fn get_v3_liquidity(
-    amount1: U256,
+    total_amount1: U256,
     sqrt_price: U256,
     sqrt_pa: U256,
     sqrt_pb: U256,
@@ -64,11 +65,11 @@ pub fn get_v3_liquidity(
     }
 
     if sqrt_price < sqrt_pa {
-        Some(Q96 * amount1 * sqrt_pb * sqrt_pa / sqrt_price.pow(TWO) / (sqrt_pb - sqrt_pa))
+        Some(Q96 * total_amount1 * sqrt_pb * sqrt_pa / sqrt_price.pow(TWO) / (sqrt_pb - sqrt_pa))
     } else if sqrt_price > sqrt_pb {
-        Some(Q96 * amount1 / (sqrt_pb - sqrt_pa))
+        Some(Q96 * total_amount1 / (sqrt_pb - sqrt_pa))
     } else {
-        Some(Q96 * amount1 / (sqrt_price * TWO - (sqrt_price.pow(TWO) / sqrt_pb) - sqrt_pa))
+        Some(Q96 * total_amount1 / (sqrt_price * TWO - (sqrt_price.pow(TWO) / sqrt_pb) - sqrt_pa))
     }
 }
 
@@ -132,10 +133,73 @@ pub fn get_amount1_from_v3_range(
     }
 
     if sqrt_price < sqrt_pa {
-        Some(U256::from(0))
+        Some(ZERO)
     } else if sqrt_price > sqrt_pb {
         mul_div_rounding_up(liquidity, sqrt_pb - sqrt_pa, Q96).ok()
     } else {
         mul_div_rounding_up(liquidity, sqrt_price - sqrt_pa, Q96).ok()
+    }
+}
+
+pub fn get_lower_sqrt_price(liquidity: U256, use_amount1: U256, sqrt_price: U256) -> Option<U256> {
+    if liquidity == ZERO || sqrt_price > MAX_SQRT_RATIO || sqrt_price < MIN_SQRT_RATIO {
+        return None;
+    };
+
+    let impact = use_amount1 * Q96 / liquidity;
+    if impact > sqrt_price {
+        Some(MIN_SQRT_RATIO)
+    } else {
+        Some(sqrt_price - impact)
+    }
+}
+
+pub fn get_lower_tick(liquidity: U256, use_amount1: U256, sqrt_price: U256) -> Option<i32> {
+    match get_lower_sqrt_price(liquidity, use_amount1, sqrt_price) {
+        None => None,
+        Some(sqrt_pa) => get_tick_at_sqrt_ratio(sqrt_pa).ok(),
+    }
+}
+
+pub fn get_both_lower(liquidity: U256, use_amount1: U256, sqrt_price: U256) -> Option<String> {
+    match get_lower_sqrt_price(liquidity, use_amount1, sqrt_price) {
+        None => None,
+        Some(sqrt_pa) => Some(format!(
+            "sqrtPa: {}\n tick: {}",
+            &sqrt_pa,
+            get_tick_at_sqrt_ratio(sqrt_pa).unwrap()
+        )),
+    }
+}
+
+pub fn get_upper_sqrt_price(liquidity: U256, use_amount0: U256, sqrt_price: U256) -> Option<U256> {
+    if liquidity == ZERO || sqrt_price > MAX_SQRT_RATIO || sqrt_price < MIN_SQRT_RATIO {
+        return None;
+    };
+
+    let impact = use_amount0 * sqrt_price;
+
+    if impact > Q96 * liquidity {
+        Some(MAX_SQRT_RATIO)
+    } else {
+        Some(sqrt_price * liquidity * Q96 / (Q96 * liquidity - impact))
+    }
+}
+
+pub fn get_upper_tick(liquidity: U256, use_amount0: U256, sqrt_price: U256) -> Option<i32> {
+    match get_upper_sqrt_price(liquidity, use_amount0, sqrt_price) {
+        None => None,
+        Some(sqrt_pb) => get_tick_at_sqrt_ratio(sqrt_pb).ok(),
+    }
+}
+
+pub fn get_both_upper(liquidity: U256, use_amount0: U256, sqrt_price: U256) -> Option<String> {
+    match get_upper_sqrt_price(liquidity, use_amount0, sqrt_price) {
+        None => None,
+        Some(sqrt_pb) => Some(format!(
+            "sqrtPb: {}\n tick: {}",
+            &sqrt_pb,
+            get_tick_at_sqrt_ratio(sqrt_pb).unwrap()
+        )),
     }
 }
