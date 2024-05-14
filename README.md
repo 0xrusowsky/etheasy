@@ -94,7 +94,7 @@ get_price_from_tick(                      // get price from tick ("1 token1 : 15
     18              // token1_decimals
 )
 
-get_liquidity_from_total_amount1(         // get liquidity from amount1 (44928398530981124971653892)
+get_liquidity_from_total_amount1(         // get liquidity from total amount1 (44928398530981124971653892)
     1e6,            // total_amount1
     5317859378      // sqrt_price_x96
     4295128739      // sqrt_pa_x96
