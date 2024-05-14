@@ -1,19 +1,30 @@
 use alloy_core::primitives::U256;
 use uniswap_v3_math::full_math::mul_div_rounding_up;
 
+const TWO: U256 = U256::from_limbs([2, 0, 0, 0]);
+const Q96: U256 = uniswap_v3_math::sqrt_price_math::Q96;
+const MIN_TICK: i32 = uniswap_v3_math::tick_math::MIN_TICK;
+const MAX_TICK: i32 = uniswap_v3_math::tick_math::MAX_TICK;
+const MIN_SQRT_RATIO: U256 = uniswap_v3_math::tick_math::MIN_SQRT_RATIO;
+const MAX_SQRT_RATIO: U256 = uniswap_v3_math::tick_math::MAX_SQRT_RATIO;
+
 pub fn get_v3_quote_from_tick(
     tick: i32,
     decimals0: U256,
     decimals1: U256,
     in_token1: bool,
-) -> U256 {
+) -> Option<U256> {
+    if tick < MIN_TICK || tick > MAX_TICK {
+        return None;
+    }
+
     let sqrt_ratio_x96 = uniswap_v3_math::tick_math::get_sqrt_ratio_at_tick(tick)
         .unwrap()
         .to_string()
         .parse::<U256>()
         .unwrap();
 
-    if sqrt_ratio_x96 <= i128::MAX.to_string().parse::<U256>().unwrap() {
+    let quote = if sqrt_ratio_x96 <= i128::MAX.to_string().parse::<U256>().unwrap() {
         let ratio_x192 = sqrt_ratio_x96.pow(U256::from(2));
         if in_token1 {
             U256::from(ratio_x192) * U256::from(10).pow(decimals0)
@@ -31,13 +42,10 @@ pub fn get_v3_quote_from_tick(
             (U256::from(1) << U256::from(128)) * U256::from(10).pow(decimals1)
                 / U256::from(ratio_x128)
         }
-    }
-}
+    };
 
-const TWO: U256 = U256::from_limbs([2, 0, 0, 0]);
-const Q96: U256 = uniswap_v3_math::sqrt_price_math::Q96;
-const MIN_SQRT_RATIO: U256 = uniswap_v3_math::tick_math::MIN_SQRT_RATIO;
-const MAX_SQRT_RATIO: U256 = uniswap_v3_math::tick_math::MAX_SQRT_RATIO;
+    Some(quote)
+}
 
 pub fn get_v3_liquidity(
     amount1: U256,
