@@ -219,38 +219,6 @@ impl Component for SearchMenuComponent {
             }
         };
 
-        let expanded_card = if let Some(index) = self.expanded_index {
-            let item = &filtered_cards[index];
-            html! {
-                <div class="fixed inset-0 flex items-center justify-center z-10">
-                    <div class="text-sm text-gray-50 bg-gray-600/90 dark:bg-gray-500/90 rounded-lg p-4 w-2/3 relative" style="transform: translate(0, calc(-50%));">
-                        <div class="flex">
-                            <p class="pr-2 text-emerald-400/70">{"command:"}</p>
-                            <p class="font-mono font-bold" style="padding-top: 0.1rem;">{format!("{} ({})", item.command, item.c_type.to_string())}</p>
-                            if item.alias.is_some() {
-                                <div class="flex ml-auto pl-6">
-                                    <p class="pr-2 text-emerald-400/70">{"aliases:"}</p>
-                                    <p class="text-xs font-mono font-bold" style="padding-top: 0.175rem;">{item.alias}</p>
-                                </div>
-                            }
-                        </div>
-                        <div class="flex pt-2">
-                            <p class="pr-2 text-emerald-400/70">{"desc:"}</p>
-                            <div class="flex-col">{ for item.desc.split('\n').map(|line| html! { <p>{line}</p> })}</div>
-                        </div>
-                        <div class="pt-2">
-                            <p class="pr-2 text-emerald-400/70">{"examples:"}</p>
-                            <pre class="bg-gray-800 text-white text-xs font-mono p-4 rounded-lg overflow-x-auto">
-                                <code> {item.example} </code>
-                            </pre>
-                        </div>
-                    </div>
-                </div>
-            }
-        } else {
-            html! {<></>}
-        };
-
         html! {
             <div style="min-height: 95vh; display: flex; flex-direction: column;"
                  onkeydown={ctx.link().callback(move |e: KeyboardEvent| Msg::CheckForAction(e))}
@@ -275,7 +243,11 @@ impl Component for SearchMenuComponent {
                             <span class="text-gray-100 font-semibold text-center">{"esc"}</span>
                         </button>
                     </div></div>
-                    {expanded_card}
+                    <DetailCardComponent item={
+                        match self.expanded_index {
+                            Some(index) => Some(&filtered_cards[index]),
+                            None => None
+                    }
                     <div class="pt-2">
                         <ul class="py-1">
                             { for filtered_cards[self.start_index..self.end_index].into_iter().enumerate()
