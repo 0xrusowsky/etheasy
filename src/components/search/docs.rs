@@ -47,7 +47,7 @@ pub static SEARCH_ITEMS: &[SearchItemData; 43] = &[
         c_type: CommandType::Input,
         alias: None,
         params: None,
-        example: Some("hex: 0x1234\nbin:0b1010\ndec:98765\nscientific notation:1.25e18"),
+        example: Some("0b1010   // bin (10)\n0x1234   // hex (460)\n987650   // hex (987650)\n1.25e6   // scientific notation (1250000)"),
         desc: "EVM word that consists of up to 32 bytes or 256 bits representing an unsigned integer.\nAccepts decimal, hex, or binary inputs. Also supports scientific notation for decimals.\nDue to its integer nature, it doesn't support floating point numbers.\nDue to its unsigned nature, it doesn't support negative numbers.",
     },
     SearchItemData {
@@ -56,7 +56,7 @@ pub static SEARCH_ITEMS: &[SearchItemData; 43] = &[
         c_type: CommandType::Input,
         alias: None,
         params: None,
-        example: Some("double quotes: \u{0022}Hello, World!\u{0022}\nsingle quotes: 'Foo Bar' // test comment"),
+        example: Some("\"Hello, World!\"   // double quotes ('Hello, World!')\n'Foo Bar'         // single quotes ('Foo Bar')"),
         desc: "Strings must be wrapped around quotation marks. Both single and double quotes are accepted.",
     },
     // END: INPUT COMMANDS
@@ -66,7 +66,7 @@ pub static SEARCH_ITEMS: &[SearchItemData; 43] = &[
         c_type: CommandType::Function,
         alias: None,
         params: None,
-        example: None,
+        example: Some("unchecked(0 - 1)                     // unchecked operation (max_uint)\nunchecked(format_units(2**256, 4))   // composed unchecked operation ('0.0000')"),
         desc: "Enables unchecked math for any calculation performed inside its brackets.",
     },
     // START: OPERATION COMMANDS
@@ -76,7 +76,7 @@ pub static SEARCH_ITEMS: &[SearchItemData; 43] = &[
         c_type: CommandType::Operation,
         alias: None,
         params: None,
-        example: None,
+        example: Some("0x11 + 3                  // addition (20)\nmax_uint + 3              // overflowing addition (-) \nunchecked(max_uint + 3)   // unchecked overflowing addition (2)"),
         desc: "Computes the non-overflowing addition of two values.",
     },
     SearchItemData {
@@ -85,8 +85,8 @@ pub static SEARCH_ITEMS: &[SearchItemData; 43] = &[
         c_type: CommandType::Operation,
         alias: None,
         params: None,
-        example: None,
-        desc: "Computes the non-underflowing substraction of two values.",
+        example: Some("0x11 - 3           // substraction (14)\n0 - 1              // underflowing substraction (-) \nunchecked(0 - 1)   // unchecked overflowing substraction (max_uint)"),
+        desc: "Computes the non-underflowing subtraction of two values.",
     },
     SearchItemData {
         id: 6,
@@ -94,7 +94,7 @@ pub static SEARCH_ITEMS: &[SearchItemData; 43] = &[
         c_type: CommandType::Operation,
         alias: None,
         params: None,
-        example: None,
+        example: Some("2 * 3  // multiplication (6)"),
         desc: "Computes the non-overflowing multiplication of two values.",
     },
     SearchItemData {
@@ -103,7 +103,7 @@ pub static SEARCH_ITEMS: &[SearchItemData; 43] = &[
         c_type: CommandType::Operation,
         alias: None,
         params: None,
-        example: None,
+        example: Some("10 / 3  // division (3)"),
         desc: "Computes the division of two values. The result is rounded down to the nearest integer.",
     },
     SearchItemData {
@@ -112,7 +112,7 @@ pub static SEARCH_ITEMS: &[SearchItemData; 43] = &[
         c_type: CommandType::Operation,
         alias: None,
         params: None,
-        example: None,
+        example: Some("10 % 3  // modulus (1)"),
         desc: "Computes the modulus of two values.",
     },
     SearchItemData {
@@ -121,7 +121,7 @@ pub static SEARCH_ITEMS: &[SearchItemData; 43] = &[
         c_type: CommandType::Operation,
         alias: None,
         params: None,
-        example: None,
+        example: Some("2 ** 8  // power (256)"),
         desc: "Computes the power of two values.",
     },
     SearchItemData {
@@ -130,7 +130,7 @@ pub static SEARCH_ITEMS: &[SearchItemData; 43] = &[
         c_type: CommandType::Operation,
         alias: None,
         params: None,
-        example: None,
+        example: Some("5 >> 1  // right shift (2)"),
         desc: "Right shift a number by n bits",
     },
     SearchItemData {
@@ -139,7 +139,7 @@ pub static SEARCH_ITEMS: &[SearchItemData; 43] = &[
         c_type: CommandType::Operation,
         alias: None,
         params: None,
-        example: None,
+        example: Some("5 << 1  // left shift (10)"),
         desc: "Left shift a number by n bits",
     },
     // END: OPERATION COMMANDS
@@ -150,7 +150,7 @@ pub static SEARCH_ITEMS: &[SearchItemData; 43] = &[
         c_type: CommandType::Function,
         alias: None,
         params: None,
-        example: None,
+        example: Some("sqrt(25)  // square root (5)"),
         desc: "Computes the square root of the input value. The result is rounded down to the nearest integer.",
     },
     SearchItemData {
@@ -159,7 +159,7 @@ pub static SEARCH_ITEMS: &[SearchItemData; 43] = &[
         c_type: CommandType::Function,
         alias: None,
         params: None,
-        example: None,
+        example: Some("root(125, 3)  // root (5)"),
         desc: "Computes the nth root of the input value. The result is rounded down to the nearest integer.",
     },
     SearchItemData {
@@ -168,7 +168,7 @@ pub static SEARCH_ITEMS: &[SearchItemData; 43] = &[
         c_type: CommandType::Function,
         alias: None,
         params: None,
-        example: None,
+        example: Some("checksum(0xd8da6bf2..7aa96045)  // address checksum (0xd8dA6BF2..7aA96045)"),
         desc: "Calculates the checksum of an Ethereum address",
     },
     SearchItemData {
@@ -177,7 +177,7 @@ pub static SEARCH_ITEMS: &[SearchItemData; 43] = &[
         c_type: CommandType::Function,
         alias: Some("address, addr"),
         params: None,
-        example: None,
+        example: Some("selector(\"transfer(address,uint256)\")  // 4-byte function selector (0xa9059cbb)"),
         desc: "Returns the 4-byte function selector for Ethereum function signatures",
     },
     SearchItemData {
@@ -186,7 +186,7 @@ pub static SEARCH_ITEMS: &[SearchItemData; 43] = &[
         c_type: CommandType::Function,
         alias: Some("sha3"),
         params: None,
-        example: None,
+        example: Some("keccak256(\"hello world\")  // keccak hash (0x47173285a8d7341e5e972fc677286384f802f8ef42a5ec5f03bbfa254cb01fad)"),
         desc: "Computes the KECCAK-256 hash of the input following the SHA-3 standard.",
     },
     SearchItemData {
@@ -195,7 +195,7 @@ pub static SEARCH_ITEMS: &[SearchItemData; 43] = &[
         c_type: CommandType::Function,
         alias: Some("b64_encode, b64encode"),
         params: None,
-        example: None,
+        example: Some("b64_encode(\"hello world\")  // base64 encode ('aGVsbG8gd29ybGQ=')"),
         desc: "Encodes the input string into Base64 format",
     },
     SearchItemData {
@@ -204,7 +204,7 @@ pub static SEARCH_ITEMS: &[SearchItemData; 43] = &[
         c_type: CommandType::Function,
         alias: Some("b64_decode, b64decode"),
         params: None,
-        example: None,
+        example: Some("b64_decode(\"aGVsbG8gd29ybGQ=\")  // base64 decode ('hello world')"),
         desc: "Decodes the Base64 encoded string back into plain text",
     },
     SearchItemData {
@@ -213,7 +213,7 @@ pub static SEARCH_ITEMS: &[SearchItemData; 43] = &[
         c_type: CommandType::Function,
         alias: None,
         params: None,
-        example: None,
+        example: Some("abi_encode(\"transfer(address,uint256)\", \"0xd8da6bf2..7aa96045, 1\")  // abi encode without function selector"),
         desc: "ABI encodes the arguments and outputs the corresponding calldata without the function selector",
     },
     SearchItemData {
@@ -222,7 +222,7 @@ pub static SEARCH_ITEMS: &[SearchItemData; 43] = &[
         c_type: CommandType::Function,
         alias: Some("abi_encode_with_sig"),
         params: None,
-        example: None,
+        example: Some("abi_encode_with_selector(\"transfer(address,uint256)\", \"0xd8da6bf2..7aa96045, 1\")  // abi encode with the function selector"),
         desc: "ABI encodes the arguments and outputs the corresponding calldata with the function selector",
     },
     SearchItemData {
@@ -231,7 +231,7 @@ pub static SEARCH_ITEMS: &[SearchItemData; 43] = &[
         c_type: CommandType::Function,
         alias: None,
         params: None,
-        example: None,
+        example: Some("abi_decode(\"transfer(address,uint256)\", \"0xa9059cbb000000000000..0000001\")  // abi decode"),
         desc: "Decodes calldata given a function signature. Automatically identifies the 8-byte function selectors if present.",
     },
     SearchItemData {
@@ -240,7 +240,7 @@ pub static SEARCH_ITEMS: &[SearchItemData; 43] = &[
         c_type: CommandType::Function,
         alias: None,
         params: None,
-        example: None,
+        example: Some("debug(\"0xa9059cbb000000000000..0000001\")  // pretty prints calldata in 32-byte words + function selector"),
         desc: "Pretty prints calldata in 32-byte words. Automatically identifies 8-byte function selectors if present.",
     },
     SearchItemData {
@@ -249,7 +249,7 @@ pub static SEARCH_ITEMS: &[SearchItemData; 43] = &[
         c_type: CommandType::Function,
         alias: Some("upper"),
         params: None,
-        example: None,
+        example: Some("upper(\"hello\")  // upper case ('HELLO')"),
         desc: "Converts a string to upper case",
     },
     SearchItemData {
@@ -258,7 +258,7 @@ pub static SEARCH_ITEMS: &[SearchItemData; 43] = &[
         c_type: CommandType::Function,
         alias: Some("lower"),
         params: None,
-        example: None,
+        example: Some("lower(\"WORLD\")  // lower case ('world')"),
         desc: "Converts a string to lower case",
     },
     SearchItemData {
@@ -267,7 +267,7 @@ pub static SEARCH_ITEMS: &[SearchItemData; 43] = &[
         c_type: CommandType::Function,
         alias: Some("chars"),
         params: None,
-        example: None,
+        example: Some("len(\"foo bar\")  // count all characters (7)"),
         desc: "Returns the length of a string",
     },
     SearchItemData {
@@ -276,7 +276,7 @@ pub static SEARCH_ITEMS: &[SearchItemData; 43] = &[
         c_type: CommandType::Function,
         alias: None,
         params: None,
-        example: None,
+        example: Some("count(\"foo bar\", \"o\")  // count input character (2)"),
         desc: "Counts occurrences of a substring within a string",
     },
     SearchItemData {
@@ -303,7 +303,7 @@ pub static SEARCH_ITEMS: &[SearchItemData; 43] = &[
         c_type: CommandType::Function,
         alias: None,
         params: None,
-        example: None,
+        example: Some("format_ether(1e18)  // format with 18 decimal places ('1.000000000000000000')"),
         desc: "Formats the input number with 18 decimal places. Since floating point math is not supported, outputs a string.",
     },
     SearchItemData {
@@ -312,7 +312,7 @@ pub static SEARCH_ITEMS: &[SearchItemData; 43] = &[
         c_type: CommandType::Function,
         alias: None,
         params: None,
-        example: None,
+        example: Some("format_uints(123456, 4)  // format with n decimal places ('12.3456')"),
         desc: "Formats the input number with a specified number of decimals. Since floating point math is not supported, outputs a string.",
     },
     SearchItemData {
@@ -321,7 +321,7 @@ pub static SEARCH_ITEMS: &[SearchItemData; 43] = &[
         c_type: CommandType::Function,
         alias: None,
         params: None,
-        example: None,
+        example: Some("unix(2023, 12, 31, 23, 59, 59)  // unix timestamp, comma separated (1704067199)\nunix(2023-12-31T23:59:59)  // unix timestamp, YYYY-MM-DDTHH:mm:ss (1704067199)\nunix(1704067199)  // formatted timestamp from unix ('2023-12-31 23:59:59')\nunix(1704067199, \"%Y-%m-%dT%H:%M:%S\")  // custom formatted timestamp from unix ('2023-12-31T23:59:59')"),
         desc: "Bidirectional function:\n- Converts a unix timestamp to a human-readable date. Accepts a second argument for the date format.\n- Converts strings of comma-separated values or '%Y-%m-%d %H:%M:%S' format to a unix timestamp.",
     },
     SearchItemData {
@@ -330,7 +330,7 @@ pub static SEARCH_ITEMS: &[SearchItemData; 43] = &[
         c_type: CommandType::Function,
         alias: Some("get_price, price_from_tick, price_at_tick"),
         params: None,
-        example: None,
+        example: Some("get_price_from_tick(202919, false, 6, 18)  // get price from tick (\"1 token1 : 1540.921115 token0\")"),
         desc: "Computes the price of a Uniswap V3 pool (in token0 or token1) given a tick value and the token decimals.",
     },
     SearchItemData {
@@ -339,7 +339,7 @@ pub static SEARCH_ITEMS: &[SearchItemData; 43] = &[
         c_type: CommandType::Function,
         alias: Some("get_tick, tick_from_sqrt_ratio, tick_from_sqrt_x96"),
         params: None,
-        example: None,
+        example: Some("get_tick_from_sqrt_ratio(4295128739)  // get tick from sqrt ratio (\"-887272\")"),
         desc: "Computes the tick of a Uniswap V3 pool given a square root of price as a Q64.96.",
     },
     SearchItemData {
@@ -348,7 +348,7 @@ pub static SEARCH_ITEMS: &[SearchItemData; 43] = &[
         c_type: CommandType::Function,
         alias: Some("get_sqrt_ratio, get_sqrt_x96, sqrt_ratio_from_tick, sqrt_x96_from_tick"),
         params: None,
-        example: None,
+        example: Some("get_sqrt_ratio_from_tick(-887272)  // get sqrt ratio from tick (\"4295128739\")"),
         desc: "Computes the square root of price as a Q64.96 give the tick of a Uniswap V3 pool.",
     },
     SearchItemData {
@@ -357,7 +357,7 @@ pub static SEARCH_ITEMS: &[SearchItemData; 43] = &[
         c_type: CommandType::Function,
         alias: Some("get_liquidity, liquidity_from_amount1"),
         params: None,
-        example: None,
+        example: Some("get_liquidity_from_amount1(1e6, 5317859378, 4295128739, 6178424788)  // get liquidity from total amount1 (44928398530981124971653892)"),
         desc: "Computes the equivalent liquidity of a Uniswap V3 range given the pool's sqrtPrice, and the range's amount1, sqrtPa, and sqrtPb.",
     },
     SearchItemData {
@@ -366,7 +366,7 @@ pub static SEARCH_ITEMS: &[SearchItemData; 43] = &[
         c_type: CommandType::Function,
         alias: Some("get_amount0, amount0_from_range"),
         params: None,
-        example: None,
+        example: Some("get_amount0_from_range(44928398530981124971653892, 5317859378, 4295128739, 6178424788)  // get amount0 from liquidity"),
         desc: "Computes the equivalent amount0 of a Uniswap V3 range given the pool's sqrtPrice, and the range's liquidity, sqrtPa, and sqrtPb.",
     },
     SearchItemData {
@@ -375,7 +375,7 @@ pub static SEARCH_ITEMS: &[SearchItemData; 43] = &[
         c_type: CommandType::Function,
         alias: Some("get_amount0, amount0_from_range"),
         params: None,
-        example: None,
+        example: Some("get_amount1_from_range(44928398530981124971653892, 5317859378, 4295128739, 6178424788)  // get amount1 from liquidity"),
         desc: "Computes the equivalent amount1 of a Uniswap V3 range given the pool's sqrtPrice, and the range's liquidity, sqrtPa, and sqrtPb.",
     },
     // END: FUNCTION COMMANDS
@@ -386,7 +386,7 @@ pub static SEARCH_ITEMS: &[SearchItemData; 43] = &[
         c_type: CommandType::Conversion,
         alias: Some("wei, kwei, mwei, gwei, szabo, finney, ether"),
         params: None,
-        example: None,
+        example: Some("1 ether to gwei  // gas unit conversion (1000000000)"),
         desc: "Converts the input value to the equivalent amount. Follows the pattern: 'unit_from' to 'unit_to'.\nWhen 'unit_to' is bigger than 'unit_from', the result is rounded down.",
     },
     SearchItemData {
@@ -395,7 +395,7 @@ pub static SEARCH_ITEMS: &[SearchItemData; 43] = &[
         c_type: CommandType::Conversion,
         alias: Some("seconds, minutes, hours, days, weeks, months, years"),
         params: None,
-        example: None,
+        example: Some("1 year to seconds  // time unit conversion (31536000)"),
         desc: "Converts the input value to the equivalent amount. Follows the pattern: 'unit_from' to 'unit_to'.\nWhen 'unit_to' is bigger than 'unit_from', the result is rounded down.",
     },
     // END: CONVERSION COMMANDS
@@ -406,7 +406,7 @@ pub static SEARCH_ITEMS: &[SearchItemData; 43] = &[
         c_type: CommandType::Constant,
         alias: Some("max_u256, type(uint256).max"),
         params: None,
-        example: None,
+        example: Some("max_uint  // maximum U256 value (0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff)"),
         desc: "Evaluates to the max uint possible with 32 bytes or 256 bits",
     },
     SearchItemData {
@@ -415,7 +415,7 @@ pub static SEARCH_ITEMS: &[SearchItemData; 43] = &[
         c_type: CommandType::Constant,
         alias: Some("address(0), addr(0), address_zero, zadd"),
         params: None,
-        example: None,
+        example: Some("zero_address  // zero address (0x0000000000000000000000000000000000000000)"),
         desc: "Evaluates to the zero address",
     },
     SearchItemData {
@@ -424,7 +424,7 @@ pub static SEARCH_ITEMS: &[SearchItemData; 43] = &[
         c_type: CommandType::Constant,
         alias: None,
         params: None,
-        example: None,
+        example: Some("now  // current timestamp"),
         desc: "Evaluates to the current unix timestamp",
     },
 ];

@@ -99,11 +99,11 @@ impl Component for DetailCardComponent {
             Some(item) => html! {
                 <div class="fixed inset-0 flex items-center justify-center z-10">
                     <div style="transform: translate(0, 7.5vh);"
-                         class="text-sm text-gray-50 bg-gray-600/90 dark:bg-gray-500/90 rounded-lg p-4 w-3/4 relative  border-4 border-gray-200/80"
+                         class="text-sm text-gray-50 bg-gray-600/90 dark:bg-gray-500/90 rounded-lg p-4 max-lg:4/5 w-3/4 relative  border-4 border-gray-200/80"
                     >
                         <div class="flex">
                             <p class="pr-2 text-emerald-400/80 font-bold">{"command:"}</p>
-                            <p class="font-mono font-bold" style="padding-top: 0.1rem;">{format!("{} ({})", item.command, item.c_type.to_string())}</p>
+                            <p class="font-mono font-bold">{format!("{} ({})", item.command, item.c_type.to_string())}</p>
                         </div>
 
                         if item.alias.is_some() {
@@ -119,7 +119,7 @@ impl Component for DetailCardComponent {
                         if item.example.is_some() {
                             <div class="pt-3">
                                 <p class="pr-2 text-emerald-400/80 font-bold">{"examples:"}</p>
-                                <pre class="bg-gray-800 text-gray-50/80 text-xs font-mono p-4 rounded-lg overflow-x-auto">
+                                <pre class="bg-gray-800 text-white/80 text-xs font-mono p-4 rounded-lg overflow-x-auto">
                                     <code> {format_code_with_comments(item.example.unwrap(), "text-gray-400/80")} </code>
                                 </pre>
                             </div>
@@ -144,7 +144,7 @@ fn parse_line(line: &str, code_style: &'static str) -> Html {
 
     for part in line.split('`') {
         if in_code {
-            elements.push(html! { <code class={code_style}>{part}</code> });
+            elements.push(html! { <span class={code_style}>{part}</span> });
         } else {
             elements.push(html! { <span>{part}</span> });
         }

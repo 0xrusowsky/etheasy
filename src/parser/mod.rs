@@ -99,6 +99,7 @@ fn eval(expression: Pairs<Rule>, unchecked: bool, blocks: &Vec<BlockState>) -> P
             Rule::function => {
                 let mut pairs = pair.into_inner();
                 let func = pairs.next().unwrap().as_str();
+                let unchecked = if func == "unchecked" { true } else { unchecked };
                 let args = pairs
                     .map(|pair| match pair.as_rule() {
                         Rule::quote => trim_quotes(pair.as_str()).into(),
@@ -302,6 +303,9 @@ const GET_BOTH_UPPER: &[&str] = &[
 ];
 
 fn utility_fn_args(func: &str, args: Vec<ParseResult>) -> ParseResult {
+    if func == "unchecked" && args.len() == 1 {
+        return args[0].clone();
+    }
     match args.len() {
         1 => match &args[0] {
             ParseResult::String(arg0) => match func {
