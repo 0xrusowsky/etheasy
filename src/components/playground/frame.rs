@@ -102,17 +102,16 @@ impl Component for FrameComponent {
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
-        let hide = if ctx.props().search_mode {
-            "hidden opacity-0"
+        let blur = if ctx.props().search_mode {
+            "filter: blur(1px);" //"blur-sm"
         } else {
             ""
         };
         html! {
-            <div class={hide}>
             <div style="min-height: 95vh; display: flex; flex-direction: column;">
             <div style="min-height: 5vh;"/>
                 <div class="font-mono text-xs md:text-sm">
-                    <div class="w-full flex">
+                    <div class="w-full flex" style={blur}>
                         // search bar
                         <div class="justify-strart items-end pt-9">
                             <button type="button" onclick={ ctx.link().callback(|_| Msg::Search) }
@@ -136,42 +135,48 @@ impl Component for FrameComponent {
                         for (0..self.num_blocks()).rev().map(|index| {
                             html! {
                                 <div class="flex">
-                                <LabelComponent block_index={index}
-                                    input_ref={
-                                        if self.focus == index {ctx.props().focus_ref.clone()} else {NodeRef::default()}
-                                    }
-                                    on_result={ctx.link().callback(move |result: String| {
-                                        Msg::RenameBlock(index, result)})
-                                    }
-                                    on_enter={ ctx.link().callback(move |_| Msg::FocusBlock) }
-                                />
-                                <BlockComponent key={index}
-                                    blocks={self.blocks.clone()} block_index={index} toggle={self.is_toggled()} label_change={self.label_change}
-                                    on_enter={
-                                        // only trigger AddBlock if Enter is pressed on the last block
-                                        if index == self.last_block() {
-                                            ctx.link().callback(move |_| Msg::AddBlock)
+                                    <LabelComponent block_index={index}
+                                        input_ref={
+                                            if self.focus == index {ctx.props().focus_ref.clone()} else {NodeRef::default()}
                                         }
-                                        // otherwise, move focus back to last block
-                                        else { ctx.link().callback(move |_| Msg::FocusBlock) }
-                                    }
-                                    on_result={ctx.link().callback(move |result| Msg::UpdateBlock(index, result))}
-                                    textarea_ref={
-                                        if self.focus == index {ctx.props().focus_ref.clone()} else {NodeRef::default()}
-                                    }
-                                /></div>
+                                        on_result={ctx.link().callback(move |result: String| {
+                                            Msg::RenameBlock(index, result)})
+                                        }
+                                        on_enter={ ctx.link().callback(move |_| Msg::FocusBlock) }
+                                        blur_style={blur}
+                                    />
+                                    <div class="w-full" style={blur}>
+                                    <BlockComponent key={index}
+                                        blocks={self.blocks.clone()} block_index={index} toggle={self.is_toggled()} label_change={self.label_change}
+                                        on_enter={
+                                            // only trigger AddBlock if Enter is pressed on the last block
+                                            if index == self.last_block() {
+                                                ctx.link().callback(move |_| Msg::AddBlock)
+                                            }
+                                            // otherwise, move focus back to last block
+                                            else { ctx.link().callback(move |_| Msg::FocusBlock) }
+                                        }
+                                        on_result={ctx.link().callback(move |result| Msg::UpdateBlock(index, result))}
+                                        textarea_ref={
+                                            if self.focus == index {ctx.props().focus_ref.clone()} else {NodeRef::default()}
+                                        }
+                                    /></div>
+                                </div>
                             }
                         })
                     }
                     </div>
                 </div>
             </div>
-            </div>
         }
     }
 
     fn rendered(&mut self, ctx: &Context<Self>, first_render: bool) {
-        if !first_render && self.focus_on_render {
+        gloo_console::log!(
+            "(rendered) focus_on_render:",
+            &self.focus_on_render.to_string()
+        );
+        if !first_render && self.focus_on_render && !ctx.props().search_mode {
             if let Some(textarea) = ctx.props().focus_ref.cast::<HtmlTextAreaElement>() {
                 let _ = textarea.focus();
             }
@@ -179,8 +184,17 @@ impl Component for FrameComponent {
     }
 
     fn changed(&mut self, ctx: &Context<Self>, old_props: &Self::Properties) -> bool {
+        gloo_console::log!(
+            "(changed) focus_on_render:",
+            &self.focus_on_render.to_string(),
+            "search_mode:",
+            &ctx.props().search_mode.to_string()
+        );
         if ctx.props().search_mode != old_props.search_mode {
-            self.focus_on_render = true;
+            match ctx.props().search_mode {
+                true => self.focus_on_render = true,
+                false => self.focus_on_render = false,
+            };
             return true;
         }
         false
