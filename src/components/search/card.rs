@@ -101,9 +101,14 @@ impl Component for DetailCardComponent {
                     <div style="transform: translate(0, 7.5vh);"
                          class="text-sm text-gray-50 bg-gray-600/90 dark:bg-gray-500/90 rounded-lg p-4 max-lg:4/5 w-3/4 relative  border-4 border-gray-200/80"
                     >
-                        <div class="flex">
-                            <p class="pr-2 text-emerald-400/80 font-bold">{"command:"}</p>
-                            <p class="font-mono font-bold">{format!("{} ({})", item.command, item.c_type.to_string())}</p>
+                        <div class="flex font-bold">
+                            <p class="pr-2 text-emerald-400/80">{"command:"}</p>
+                            if item.params.is_some() {
+                                <code class="font-mono pl-2 overflow-x-auto">{format_code_with_comments(item.params.unwrap(), "text-gray-400/80", "text-amber-300/80")} </code>
+                                <p class="font-mono pl-2">{format!("({})", item.c_type.to_string())}</p>
+                            } else {
+                                <p class="font-mono font-bold">{format!("{} ({})", item.command, item.c_type.to_string())}</p>
+                            }
                         </div>
 
                         if item.alias.is_some() {
@@ -120,7 +125,7 @@ impl Component for DetailCardComponent {
                             <div class="pt-3">
                                 <p class="pr-2 text-emerald-400/80 font-bold">{"examples:"}</p>
                                 <pre class="bg-gray-800 text-white/80 text-xs font-mono p-4 rounded-lg overflow-x-auto">
-                                    <code> {format_code_with_comments(item.example.unwrap(), "text-gray-400/80")} </code>
+                                    <code> {format_code_with_comments(item.example.unwrap(), "text-gray-400/80", "text-amber-300/60")} </code>
                                 </pre>
                             </div>
                         }
@@ -144,7 +149,7 @@ fn parse_line(line: &str, code_style: &'static str) -> Html {
 
     for part in line.split('`') {
         if in_code {
-            elements.push(html! { <span class={code_style}>{part}</span> });
+            elements.push(html! { <code class={code_style}>{part}</code> });
         } else {
             elements.push(html! { <span>{part}</span> });
         }
@@ -154,19 +159,35 @@ fn parse_line(line: &str, code_style: &'static str) -> Html {
     html! { <p>{ for elements }</p> }
 }
 
-fn format_code_with_comments(code: &str, comment_style: &'static str) -> Html {
+fn format_code_with_comments(
+    code: &str,
+    comment_style: &'static str,
+    param_style: &'static str,
+) -> Html {
     html! {
         for code.split('\n').map(|line| {
             if let Some(comment_start) = line.find("//") {
                 let (code_part, comment_part) = line.split_at(comment_start);
                 html! {
                     <div class="flex">
-                        <span>{code_part}</span>
+                        <span>{parse_line(code_part, param_style)}</span>
                         <span class={comment_style}>{comment_part}</span>
                     </div>
                 }
             } else {
-                html! { <div>{line}</div> }
+                html! { <div>{parse_line(line, param_style)}</div> }
+            }
+        })
+    }
+}
+
+fn format_code_with_params(code: &str, param_style: &'static str) -> Html {
+    html! {
+        for code.split(' ').map(|part| {
+            if part.starts_with('-') {
+                html! { <span class={param_style}>{part}</span> }
+            } else {
+                html! { <span>{part}</span> }
             }
         })
     }
