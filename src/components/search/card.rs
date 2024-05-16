@@ -53,7 +53,7 @@ impl Component for SearchCardComponent {
                 onblur={ctx.link().callback(|_| Msg::Blur)}
                 onfocus={ctx.link().callback(|_| Msg::Focus)}
                 onclick={ctx.link().callback(|_| Msg::Expand)}
-                class="text-sm px-6 py-2 border-t-2 border-gray-400 text-gray-200/60 focus:bg-gray-700/50 focus:bg-gray-700/50 hover:bg-gray-700/50 hover:bg-gray-700/50 ring-0 outline-0"
+                class="text-sm px-6 py-2 border-t-2 border-gray-400 text-gray-200/60 focus:text-gray-200 hover:text-gray-200 focus:bg-gray-800/50 focus:bg-gray-800/50 hover:bg-gray-800/50 hover:bg-gray-800/50 ring-0 outline-0"
             >
             <div class="flex">
                 <p class="pr-2 dark:text-gray-300/50 text-gray-200/50">{"command:"}</p>
@@ -98,31 +98,76 @@ impl Component for DetailCardComponent {
         match &ctx.props().item {
             Some(item) => html! {
                 <div class="fixed inset-0 flex items-center justify-center z-10">
-                    <div class="text-sm text-gray-50 bg-gray-600/90 dark:bg-gray-500/90 rounded-lg p-4 w-2/3 relative" style="transform: translate(0, calc(-50%));">
+                    <div style="transform: translate(0, 7.5vh);"
+                         class="text-sm text-gray-50 bg-gray-600/90 dark:bg-gray-500/90 rounded-lg p-4 w-3/4 relative  border-4 border-gray-200/80"
+                    >
                         <div class="flex">
-                            <p class="pr-2 text-emerald-400/70">{"command:"}</p>
+                            <p class="pr-2 text-emerald-400/80 font-bold">{"command:"}</p>
                             <p class="font-mono font-bold" style="padding-top: 0.1rem;">{format!("{} ({})", item.command, item.c_type.to_string())}</p>
-                            if item.alias.is_some() {
-                                <div class="flex ml-auto pl-6">
-                                    <p class="pr-2 text-emerald-400/70">{"aliases:"}</p>
-                                    <p class="text-xs font-mono font-bold" style="padding-top: 0.175rem;">{item.alias}</p>
-                                </div>
-                            }
                         </div>
-                        <div class="flex pt-2">
-                            <p class="pr-2 text-emerald-400/70">{"desc:"}</p>
-                            <div class="flex-col">{ for item.desc.split('\n').map(|line| html! { <p>{line}</p> })}</div>
+
+                        if item.alias.is_some() {
+                            <div class="flex pt-1 pb-3">
+                                <p class="pl-5 pr-2 text-emerald-400/80 font-bold">{"aliases:"}</p>
+                                <p class="font-mono" style="padding-top: 0.1rem;">{item.alias}</p>
+                            </div>
+                        }
+                        <div class="flex pt-3">
+                            <p class="pr-2 text-emerald-400/80 font-bold">{"description:"}</p>
+                            <div class="flex-col">{ format_text_with_code(item.desc, "font-mono font-bold px-1 text-amber-300/70")}</div>
                         </div>
-                        <div class="pt-2">
-                            <p class="pr-2 text-emerald-400/70">{"examples:"}</p>
-                            <pre class="bg-gray-800 text-white text-xs font-mono p-4 rounded-lg overflow-x-auto">
-                                <code> {item.example} </code>
-                            </pre>
-                        </div>
+                        if item.example.is_some() {
+                            <div class="pt-3">
+                                <p class="pr-2 text-emerald-400/80 font-bold">{"examples:"}</p>
+                                <pre class="bg-gray-800 text-gray-50/80 text-xs font-mono p-4 rounded-lg overflow-x-auto">
+                                    <code> {format_code_with_comments(item.example.unwrap(), "text-gray-400/80")} </code>
+                                </pre>
+                            </div>
+                        }
                     </div>
                 </div>
             },
             None => html! {<></>},
         }
+    }
+}
+
+fn format_text_with_code(text: &str, code_style: &'static str) -> Html {
+    html! {
+        for text.split('\n').map(|line| parse_line(line, code_style))
+    }
+}
+
+fn parse_line(line: &str, code_style: &'static str) -> Html {
+    let mut elements = Vec::new();
+    let mut in_code = false;
+
+    for part in line.split('`') {
+        if in_code {
+            elements.push(html! { <code class={code_style}>{part}</code> });
+        } else {
+            elements.push(html! { <span>{part}</span> });
+        }
+        in_code = !in_code;
+    }
+
+    html! { <p>{ for elements }</p> }
+}
+
+fn format_code_with_comments(code: &str, comment_style: &'static str) -> Html {
+    html! {
+        for code.split('\n').map(|line| {
+            if let Some(comment_start) = line.find("//") {
+                let (code_part, comment_part) = line.split_at(comment_start);
+                html! {
+                    <div class="flex">
+                        <span>{code_part}</span>
+                        <span class={comment_style}>{comment_part}</span>
+                    </div>
+                }
+            } else {
+                html! { <div>{line}</div> }
+            }
+        })
     }
 }

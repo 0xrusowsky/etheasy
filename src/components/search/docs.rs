@@ -39,7 +39,7 @@ pub static SEARCH_ITEMS: &[SearchItemData; 43] = &[
         alias: None,
         params: None,
         example: None,
-        desc: "Block results are stored in the app state, and can be referenced in other blocks.\nBy default names follow 'block_x' notation, but you can be renamed by modifying the block label.\nVariables don't need to be wrapped in quotes, and will evaluate to their corresponding value.",
+        desc: "Block results are stored in the app state, and can be referenced in other blocks.\nBy default names follow `block_x` notation, but you can be renamed by modifying the block label.\nVariables don't need to be wrapped in quotes, and will evaluate to their corresponding value.",
     },
     SearchItemData {
         id: 1,
@@ -56,7 +56,7 @@ pub static SEARCH_ITEMS: &[SearchItemData; 43] = &[
         c_type: CommandType::Input,
         alias: None,
         params: None,
-        example: Some("double quotes: \u{0022}Hello, World!\u{0022}\nsingle quotes: 'Foo Bar'"),
+        example: Some("double quotes: \u{0022}Hello, World!\u{0022}\nsingle quotes: 'Foo Bar' // test comment"),
         desc: "Strings must be wrapped around quotation marks. Both single and double quotes are accepted.",
     },
     // END: INPUT COMMANDS
