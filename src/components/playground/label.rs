@@ -14,6 +14,7 @@ pub struct LabelProps {
     pub input_ref: NodeRef,
     // app state
     pub block_index: usize,
+    pub blur_style: &'static str,
 }
 
 #[derive(Debug)]
@@ -50,7 +51,6 @@ impl Component for LabelComponent {
                 false
             }
             Msg::Blur => {
-                gloo_console::log!(self.id.clone());
                 ctx.props().on_result.emit(self.id.clone());
                 false
             }
@@ -76,6 +76,7 @@ impl Component for LabelComponent {
                     onkeydown={on_key_down}
                     oninput={on_input}
                     onblur={on_blur}
+                    style={ctx.props().blur_style}
                 />
             </form>
         }
