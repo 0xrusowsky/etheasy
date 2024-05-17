@@ -1,5 +1,3 @@
-use crate::components::search::card::_CardProps::focus_ref;
-
 use super::card::{DetailCardComponent, SearchCardComponent};
 use super::docs::{SearchItemData, SEARCH_ITEMS};
 

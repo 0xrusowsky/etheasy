@@ -1154,8 +1154,16 @@ video {
   letter-spacing: -0.025em;
 }
 
+.text-amber-300\/60 {
+  color: rgb(252 211 77 / 0.6);
+}
+
 .text-amber-300\/70 {
   color: rgb(252 211 77 / 0.7);
+}
+
+.text-amber-300\/80 {
+  color: rgb(252 211 77 / 0.8);
 }
 
 .text-emerald-400\/80 {
