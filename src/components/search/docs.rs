@@ -353,11 +353,11 @@ pub static SEARCH_ITEMS: &[SearchItemData; 43] = &[
     },
     SearchItemData {
         id: 35,
-        command: "get_liquidity_from_amount1",
+        command: "get_liquidity_from_total_amount1",
         c_type: CommandType::Function,
-        alias: Some("get_liquidity, liquidity_from_amount1"),
+        alias: Some("get_liquidity, liquidity_from_total_amount1"),
         params: None,
-        example: Some("get_liquidity_from_amount1(1e6, 5317859378, 4295128739, 6178424788)  // get liquidity from total amount1 (44928398530981124971653892)"),
+        example: Some("get_liquidity_from_total_amount1(1e6, 5317859378, 4295128739, 6178424788)  // get liquidity from total amount1 (44928398530981124971653892)"),
         desc: "Computes the equivalent liquidity of a Uniswap V3 range given the pool's sqrtPrice, and the range's amount1, sqrtPa, and sqrtPb.",
     },
     SearchItemData {
