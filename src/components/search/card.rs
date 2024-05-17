@@ -180,15 +180,3 @@ fn format_code_with_comments(
         })
     }
 }
-
-fn format_code_with_params(code: &str, param_style: &'static str) -> Html {
-    html! {
-        for code.split(' ').map(|part| {
-            if part.starts_with('-') {
-                html! { <span class={param_style}>{part}</span> }
-            } else {
-                html! { <span>{part}</span> }
-            }
-        })
-    }
-}
