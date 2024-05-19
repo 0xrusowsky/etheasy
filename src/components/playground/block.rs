@@ -1,3 +1,4 @@
+use super::types::{BlockInput, BlockState};
 use crate::components::json::JsonComponent;
 use crate::parser::types::result::ParseResult;
 use crate::parser::{self, utils};
@@ -8,86 +9,41 @@ use yew::{prelude::*, Component};
 
 pub enum Msg {
     Blur,
-    InputChanged(TextAreaInput),
+    InputChanged(BlockInput),
     CheckForEnter(KeyboardEvent),
-}
-
-#[derive(Debug, PartialEq, Clone)]
-pub struct BlockState {
-    id: String,
-    result: ParseResult,
-}
-
-impl BlockState {
-    pub fn from_id(id: usize) -> Self {
-        Self {
-            id: format!("block_{}", id),
-            result: ParseResult::NAN,
-        }
-    }
-
-    pub fn update_id(&mut self, id: String) {
-        self.id = id;
-    }
-
-    pub fn update_result(&mut self, result: ParseResult) {
-        self.result = result;
-    }
-
-    pub fn get_id(&self) -> &str {
-        &self.id
-    }
-
-    pub fn get_result(&self) -> ParseResult {
-        self.result.clone()
-    }
 }
 
 #[derive(Properties, PartialEq)]
 pub struct BlockProps {
     pub on_enter: Callback<()>,
     pub on_result: Callback<ParseResult>,
+    pub on_export: Callback<BlockInput>,
+    pub on_import: Callback<()>,
     pub textarea_ref: NodeRef,
     // app state
     pub toggle: bool,
+    pub export: bool,
     pub blocks: Vec<BlockState>,
+    pub import: Option<BlockInput>,
     pub block_index: usize,
     pub label_change: bool,
-}
-
-#[derive(Debug, PartialEq)]
-pub struct TextAreaInput {
-    pub value: String,
-    pub height: i32,
 }
 
 #[derive(Debug)]
 pub struct BlockComponent {
     min_height: i32,
     initialized: bool,
-    input: TextAreaInput,
+    input: BlockInput,
     output: ParseResult,
 }
 
 impl BlockComponent {
-    pub fn new() -> Self {
-        Self {
-            min_height: 110,
-            initialized: false,
-            input: TextAreaInput {
-                value: "".to_string(),
-                height: 0,
-            },
-            output: ParseResult::NAN,
-        }
-    }
-
     fn parse_input(&mut self, blocks: &Vec<BlockState>) {
-        let s = self.input.value.replace("\n", "");
+        let s = self.input.get_value().replace("\n", "");
         self.output = parser::parse(&s, blocks);
 
-        if self.input.height > 110 {
-            self.min_height = self.input.height;
+        if self.input.height() > 110 {
+            self.min_height = self.input.height();
         }
     }
 
@@ -104,8 +60,26 @@ impl Component for BlockComponent {
     type Message = Msg;
     type Properties = BlockProps;
 
-    fn create(_ctx: &Context<Self>) -> Self {
-        BlockComponent::new()
+    fn create(ctx: &Context<Self>) -> Self {
+        match &ctx.props().import {
+            Some(input) => Self {
+                min_height: input.height(),
+                initialized: true,
+                input: input.clone(),
+                output: ctx
+                    .props()
+                    .blocks
+                    .get(ctx.props().block_index)
+                    .unwrap()
+                    .get_result(),
+            },
+            None => Self {
+                min_height: 110,
+                initialized: false,
+                input: BlockInput::default(),
+                output: ParseResult::NAN,
+            },
+        }
     }
 
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
@@ -114,6 +88,7 @@ impl Component for BlockComponent {
                 self.initialized = true;
                 self.input = input;
                 self.parse_input(&ctx.props().blocks);
+                ctx.props().on_result.emit(self.output.clone());
                 // Manually resize textarea to avoid scrollbars
                 if let Some(textarea) = ctx.props().textarea_ref.cast::<HtmlTextAreaElement>() {
                     match textarea.remove_attribute("style") {
@@ -129,11 +104,10 @@ impl Component for BlockComponent {
                 true
             }
             Msg::CheckForEnter(e) => {
-                let has_content = self.input.value.len() > 0
-                    && self.input.value.len() != utils::count_chars(&self.input.value, "\n");
+                let has_content = self.input.len() > 0
+                    && self.input.len() != utils::count_chars(self.input.get_value(), "\n");
                 if e.key() == "Enter" && !e.shift_key() && has_content {
                     e.prevent_default();
-                    ctx.props().on_result.emit(self.output.clone());
                     ctx.props().on_enter.emit(());
                 }
                 false
@@ -141,7 +115,8 @@ impl Component for BlockComponent {
             Msg::Blur => {
                 if let Some(textarea) = ctx.props().textarea_ref.cast::<HtmlTextAreaElement>() {
                     // Ensure first block is always expanded despite not focused
-                    if self.input.value == "" && ctx.props().block_index == ctx.props().blocks.len()
+                    if self.input.get_value() == ""
+                        && ctx.props().block_index == ctx.props().blocks.len()
                     {
                         match textarea.remove_attribute("style") {
                             Ok(_) => (),
@@ -163,10 +138,7 @@ impl Component for BlockComponent {
         let on_blur = ctx.link().callback(move |_: FocusEvent| Msg::Blur);
         let on_text_input = ctx.link().callback(move |e: InputEvent| {
             let input: HtmlTextAreaElement = e.target_unchecked_into::<HtmlTextAreaElement>();
-            Msg::InputChanged(TextAreaInput {
-                value: input.value(),
-                height: input.scroll_height() + 10,
-            })
+            Msg::InputChanged(BlockInput::new(input.value(), input.scroll_height() + 10))
         });
         let block_class = format!("{} {}",
             if ctx.props().block_index == ctx.props().blocks.len() - 1 {
@@ -256,6 +228,32 @@ impl Component for BlockComponent {
         if ctx.props().label_change != old_props.label_change {
             self.parse_input(&ctx.props().blocks);
         }
+        if ctx.props().export != old_props.export && ctx.props().export {
+            ctx.props().on_export.emit(self.input.clone());
+            return false;
+        }
+        if ctx.props().import != old_props.import && ctx.props().import.is_some() {
+            self.input = ctx.props().import.clone().unwrap();
+            self.output = ctx
+                .props()
+                .blocks
+                .get(ctx.props().block_index)
+                .unwrap()
+                .get_result();
+        }
         true
+    }
+
+    fn rendered(&mut self, ctx: &Context<Self>, _first_render: bool) {
+        if ctx.props().import.is_some() {
+            let textarea_ref = ctx.props().textarea_ref.clone();
+            let input_value = self.input.get_value().clone();
+            if let Some(textarea) = textarea_ref.cast::<HtmlTextAreaElement>() {
+                textarea.set_value(&input_value);
+            }
+        }
+        if ctx.props().import.is_some() && ctx.props().block_index == 0 {
+            ctx.props().on_import.emit(());
+        }
     }
 }

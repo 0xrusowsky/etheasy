@@ -651,6 +651,10 @@ video {
   width: 50%;
 }
 
+.w-2 {
+  width: 0.5rem;
+}
+
 .w-4 {
   width: 1rem;
 }
@@ -998,6 +1002,10 @@ video {
 
 .pl-2\.5 {
   padding-left: 0.625rem;
+}
+
+.pl-3 {
+  padding-left: 0.75rem;
 }
 
 .pl-4 {
@@ -1567,6 +1575,10 @@ video {
 @media (min-width: 768px) {
   .md\:inline {
     display: inline;
+  }
+
+  .md\:flex {
+    display: flex;
   }
 
   .md\:h-7 {

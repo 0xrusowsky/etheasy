@@ -1107,6 +1107,7 @@ dependencies = [
  "chrono",
  "gloo 0.11.0",
  "gloo-console 0.3.0",
+ "js-sys",
  "lazy_static",
  "pest",
  "pest_derive",
