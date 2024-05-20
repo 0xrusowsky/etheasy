@@ -118,7 +118,6 @@ impl NotebookMethods for Notebook {
     }
 }
 
-// Function to create download callback
 pub fn download_notebook(notebook: Notebook) {
     let json = notebook.to_json();
     let array = js_sys::Array::new();

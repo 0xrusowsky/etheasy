@@ -69,6 +69,15 @@ impl ParseResult {
             ParseResult::NAN => "-".to_string(),
         }
     }
+
+    pub fn to_string(&self) -> String {
+        match self {
+            ParseResult::Value(u) => u.to_string(),
+            ParseResult::String(s) => s.to_string(),
+            ParseResult::Json(j) => j.to_string(),
+            ParseResult::NAN => "-".to_string(),
+        }
+    }
 }
 
 impl Default for ParseResult {
