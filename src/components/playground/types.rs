@@ -3,7 +3,7 @@ use crate::parser::types::result::ParseResult;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::closure::Closure;
 use wasm_bindgen::{JsCast, JsValue};
-use web_sys::{Blob, BlobPropertyBag, File, FileReader, HtmlElement, HtmlInputElement, Url};
+use web_sys::{Blob, BlobPropertyBag, File, FileReader, HtmlElement, Url};
 use yew::prelude::*;
 
 #[derive(Debug, PartialEq, Clone, Default)]
@@ -19,10 +19,6 @@ impl BlockInput {
 
     pub fn get_value(&self) -> &String {
         &self.value
-    }
-
-    pub fn get_value_owned(self) -> String {
-        self.value.clone()
     }
 
     pub fn len(&self) -> usize {
@@ -134,8 +130,6 @@ pub fn download_notebook(notebook: Notebook) {
     )
     .unwrap();
     let url = web_sys::Url::create_object_url_with_blob(&blob).unwrap();
-    gloo_console::log!(&url);
-
     let window = web_sys::window().unwrap();
     let document = window.document().unwrap();
     let a = document.create_element("a").unwrap();
@@ -148,16 +142,26 @@ pub fn download_notebook(notebook: Notebook) {
     Url::revoke_object_url(&url).unwrap();
 }
 
-pub fn load_notebook(file: File, callback: Callback<(Vec<BlockState>, Vec<BlockInput>)>) {
+pub fn load_notebook(
+    file: File,
+    success_callback: Callback<(Vec<BlockState>, Vec<BlockInput>)>,
+    error_callback: Callback<()>,
+) {
     let file_reader = std::rc::Rc::new(std::cell::RefCell::new(FileReader::new().unwrap()));
     let reader_clone = file_reader.clone();
 
     let onloadend = Closure::wrap(Box::new(move || {
         let result = reader_clone.borrow().result().unwrap().as_string().unwrap();
-        let notebook: Notebook = serde_json::from_str(&result).unwrap();
-        gloo_console::log!(format!("{:#?}", notebook));
-        let (states, inputs) = notebook.into_blocks();
-        callback.emit((states, inputs));
+        match serde_json::from_str::<Notebook>(&result) {
+            Ok(notebook) => {
+                let (states, inputs) = notebook.into_blocks();
+                success_callback.emit((states, inputs));
+            }
+            Err(_) => {
+                gloo_console::log!("Error parsing import file!");
+                error_callback.emit(());
+            }
+        };
     }) as Box<dyn FnMut()>);
 
     file_reader

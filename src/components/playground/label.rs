@@ -30,15 +30,9 @@ impl Component for LabelComponent {
 
     fn create(ctx: &Context<Self>) -> Self {
         match &ctx.props().import {
-            Some(_) => {
-                gloo_console::log!(
-                    "label",
-                    ctx.props().import.clone().unwrap().get_id().to_string()
-                );
-                Self {
-                    id: ctx.props().import.clone().unwrap().get_id().to_string(),
-                }
-            }
+            Some(_) => Self {
+                id: ctx.props().import.clone().unwrap().get_id().to_string(),
+            },
             None => Self {
                 id: format!("block_{}", ctx.props().block_index),
             },
@@ -64,7 +58,6 @@ impl Component for LabelComponent {
                 false
             }
             Msg::Blur => {
-                gloo_console::log!(self.id.clone());
                 ctx.props().on_result.emit(self.id.clone());
                 false
             }

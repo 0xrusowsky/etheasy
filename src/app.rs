@@ -14,6 +14,8 @@ pub enum Msg {
     SearchOn,
     SearchOff,
     LandingOff,
+    ImportDone,
+    ExportDone,
     GoToLanding,
     GoToPlayground,
 }
@@ -22,6 +24,8 @@ pub struct App {
     dark_mode: bool,
     work_mode: bool,
     search_mode: bool,
+    import_mode: bool,
+    export_mode: bool,
     landing_ref: NodeRef,
     playgroundg_ref: NodeRef,
     kbd_listener: Option<EventListener>,
@@ -57,6 +61,8 @@ impl Component for App {
             dark_mode: true,
             work_mode: false,
             search_mode: false,
+            import_mode: false,
+            export_mode: false,
             landing_ref: NodeRef::default(),
             playgroundg_ref: NodeRef::default(),
             kbd_listener: None,
@@ -74,11 +80,24 @@ impl Component for App {
                 self.dark_mode = dark_mode;
             }
             Msg::CheckForSearchAction(e) => {
-                if !self.search_mode && (e.meta_key() || e.ctrl_key()) && e.key() == "k" {
+                if !self.search_mode
+                    && (e.meta_key() || e.ctrl_key())
+                    && e.key().to_lowercase() == "k"
+                {
                     self.work_mode = true;
                     self.search_mode = true;
                 } else if self.search_mode && e.key() == "Escape" {
                     self.search_mode = false;
+                } else if !self.import_mode
+                    && (e.meta_key() || e.ctrl_key())
+                    && e.key().to_lowercase() == "i"
+                {
+                    self.import_mode = true;
+                } else if !self.export_mode
+                    && (e.meta_key() || e.ctrl_key())
+                    && e.key().to_lowercase() == "e"
+                {
+                    self.export_mode = true;
                 } else {
                     return false;
                 }
@@ -90,14 +109,22 @@ impl Component for App {
             Msg::SearchOff => {
                 self.search_mode = false;
             }
+            Msg::LandingOff => {
+                self.work_mode = true;
+            }
+            Msg::ImportDone => {
+                self.import_mode = false;
+                return false;
+            }
+            Msg::ExportDone => {
+                self.export_mode = false;
+                return false;
+            }
             Msg::GoToLanding => {
                 self.work_mode = false;
                 if let Some(landing) = self.landing_ref.cast::<HtmlElement>() {
                     landing.scroll_into_view();
                 }
-            }
-            Msg::LandingOff => {
-                self.work_mode = true;
             }
             Msg::GoToPlayground => {
                 if let Some(pg) = self.playgroundg_ref.cast::<HtmlElement>() {
@@ -194,9 +221,13 @@ impl Component for App {
             <div id="playground">
                 if self.search_mode {<SearchMenuComponent on_escape={ctx.link().callback(|_| Msg::SearchOff)}/>}
                 <FrameComponent
-                    search_mode={self.search_mode}
                     focus_ref={self.playgroundg_ref.clone()}
+                    search_mode={self.search_mode}
+                    import_mode={self.import_mode}
+                    export_mode={self.export_mode}
                     on_search={ctx.link().callback(|_| Msg::SearchOn)}
+                    on_import={ctx.link().callback(|_| Msg::ImportDone)}
+                    on_export={ctx.link().callback(|_| Msg::ExportDone)}
                 />
             </div>
             // footer

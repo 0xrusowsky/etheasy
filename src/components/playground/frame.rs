@@ -18,7 +18,7 @@ pub enum Msg {
     Export,
     Import,
     ImportFinished,
-    LoadFile(Option<File>),
+    LoadFile(File),
     NotebookLoaded((Vec<BlockState>, Vec<BlockInput>)),
     // block state
     AddBlock,
@@ -44,8 +44,12 @@ pub struct FrameComponent {
 #[derive(Properties, PartialEq)]
 pub struct FrameProps {
     pub search_mode: bool,
+    pub import_mode: bool,
+    pub export_mode: bool,
     pub focus_ref: NodeRef,
     pub on_search: Callback<()>,
+    pub on_import: Callback<()>,
+    pub on_export: Callback<()>,
 }
 
 impl FrameComponent {
@@ -137,17 +141,17 @@ impl Component for FrameComponent {
                 self.export = true;
             }
             Msg::Import => {
-                self.blocks = Vec::new();
-                self.focus = self.last_block();
                 if let Some(input) = self.import_ref.cast::<HtmlInputElement>() {
                     input.click();
                 }
                 return false;
             }
             Msg::LoadFile(file) => {
-                if let Some(file) = file {
-                    load_notebook(file, ctx.link().callback(Msg::NotebookLoaded));
-                }
+                load_notebook(
+                    file,
+                    ctx.link().callback(Msg::NotebookLoaded),
+                    ctx.link().callback(|_| Msg::ImportFinished),
+                );
                 return false;
             }
             Msg::NotebookLoaded((states, inputs)) => {
@@ -158,6 +162,7 @@ impl Component for FrameComponent {
             Msg::ImportFinished => {
                 self.inputs = None;
                 self.focus_on_render = true;
+                ctx.props().on_import.emit(());
                 return false;
             }
             Msg::ExportBlock(input) => {
@@ -170,7 +175,6 @@ impl Component for FrameComponent {
                         notebook.push(NotebookBlock::new(input, state))
                     }
                     self.export = false;
-                    gloo_console::log!(format!("{:#?}", notebook));
                     download_notebook(notebook);
                 }
                 return false;
@@ -188,7 +192,13 @@ impl Component for FrameComponent {
         let on_file_change = ctx.link().callback(move |e: Event| {
             let input: HtmlInputElement = e.target_unchecked_into();
             let file = input.files().and_then(|files| files.get(0));
-            Msg::LoadFile(file)
+            match file {
+                Some(file) => {
+                    gloo_console::log!("Importing file:", &file.name());
+                    Msg::LoadFile(file)
+                }
+                None => Msg::ImportFinished,
+            }
         });
 
         html! {
@@ -207,11 +217,11 @@ impl Component for FrameComponent {
                             <div class="w-2"/>
                             <button type="button" onclick={ctx.link().callback(|_| Msg::Import)}
                                 class="hidden h-7 w-1/8 md:flex items-center text-sm text-gray-400 rounded-md ring-1 ring-gray-900/10 shadow-sm px-3 hover:ring-gray-400 dark:bg-dark-code bg-gray-200 hover:bg-gray-300/60 hover:text-gray-500 dark:highlight-white/5 dark:hover:bg-gray-700 dark:hover:text-gray-300 outline-gray-300 outline-offset-4">
-                                {"Import"}<span class="ml-auto pl-3 pt-0.5 flex-none text-lg font-semibold">{"⌘"}</span><span class="ml-auto pl-1 pt-0.5 flex-none text-xs font-semibold">{"I"}</span>
+                                {"Import"}<span class="ml-auto pl-3 pt-0.5 flex-none text-lg font-semibold">{"⌘"}</span><span class="ml-auto pl-0.5 pt-0.5 flex-none text-xs font-semibold">{"I"}</span>
                             </button>
                             <div class="w-2"/>
-                            <input type="file" style="display: none;" ref={self.import_ref.clone()} onchange={on_file_change}/>
-                            <button type="button" onclick={ctx.link().callback(move |_| Msg::Export)}
+                            <input type="file" style="display: none;" ref={self.import_ref.clone()} oncancel={ctx.link().callback(|_| Msg::ImportFinished)} onchange={on_file_change}/>
+                            <button type="button" onclick={ctx.link().callback(|_| Msg::Export)}
                                 class="hidden h-7 w-1/8 md:flex items-center text-sm text-gray-400 rounded-md ring-1 ring-gray-900/10 shadow-sm px-3 hover:ring-gray-400 dark:bg-dark-code bg-gray-200 hover:bg-gray-300/60 hover:text-gray-500 dark:highlight-white/5 dark:hover:bg-gray-700 dark:hover:text-gray-300 outline-gray-300 outline-offset-4">
                                 {"Export"}<span class="ml-auto pl-3 pt-0.5 flex-none text-lg font-semibold">{"⌘"}</span><span class="ml-auto pl-1 pt-0.5 flex-none text-xs font-semibold">{"E"}</span>
                             </button>
@@ -282,6 +292,15 @@ impl Component for FrameComponent {
     fn changed(&mut self, ctx: &Context<Self>, old_props: &Self::Properties) -> bool {
         if ctx.props().search_mode != old_props.search_mode {
             self.focus_on_render = true;
+            return true;
+        }
+        if ctx.props().import_mode {
+            if let Some(input) = self.import_ref.cast::<HtmlInputElement>() {
+                input.click();
+            }
+        }
+        if ctx.props().export_mode && !self.export {
+            self.export = true;
             return true;
         }
         false
