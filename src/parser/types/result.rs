@@ -1,7 +1,8 @@
 #![allow(dead_code)]
 use alloy_core::primitives::{B256, U256};
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum ParseResult {
     Value(U256),
     String(String),

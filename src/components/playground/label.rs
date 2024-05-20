@@ -1,4 +1,6 @@
-use web_sys::HtmlInputElement;
+use super::types::BlockState;
+
+use web_sys::{HtmlInputElement, HtmlTextAreaElement};
 use yew::{prelude::*, Component};
 
 pub enum Msg {
@@ -14,6 +16,7 @@ pub struct LabelProps {
     pub input_ref: NodeRef,
     // app state
     pub block_index: usize,
+    pub import: Option<BlockState>,
     pub blur_style: &'static str,
 }
 
@@ -27,15 +30,20 @@ impl Component for LabelComponent {
     type Properties = LabelProps;
 
     fn create(ctx: &Context<Self>) -> Self {
-        Self {
-            id: format!("block_{}", ctx.props().block_index),
+        match &ctx.props().import {
+            Some(_) => Self {
+                id: ctx.props().import.clone().unwrap().get_id().to_string(),
+            },
+            None => Self {
+                id: format!("block_{}", ctx.props().block_index),
+            },
         }
     }
 
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             Msg::InputChanged(input) => {
-                if input.trim().len() == 0 {
+                if input.trim().len() == 0 && ctx.props().import.is_none() {
                     self.id = format!("block_{}", ctx.props().block_index);
                 } else {
                     self.id = input.trim().to_lowercase().replace(" ", "_");
@@ -76,13 +84,27 @@ impl Component for LabelComponent {
                     onkeydown={on_key_down}
                     oninput={on_input}
                     onblur={on_blur}
+                    ref={ctx.props().input_ref.clone()}
                     style={ctx.props().blur_style}
                 />
             </form>
         }
     }
 
-    fn changed(&mut self, _ctx: &Context<Self>, _old_props: &Self::Properties) -> bool {
+    fn changed(&mut self, ctx: &Context<Self>, old_props: &Self::Properties) -> bool {
+        if ctx.props().import != old_props.import && ctx.props().import.is_some() {
+            self.id = ctx.props().import.clone().unwrap().get_id().to_string();
+        }
         true
+    }
+
+    fn rendered(&mut self, ctx: &Context<Self>, _first_render: bool) {
+        if ctx.props().import.is_some() {
+            let textarea_ref = ctx.props().input_ref.clone();
+            let input_value = ctx.props().import.clone().unwrap().get_id().to_string();
+            if let Some(textarea) = textarea_ref.cast::<HtmlTextAreaElement>() {
+                textarea.set_value(&input_value);
+            }
+        }
     }
 }

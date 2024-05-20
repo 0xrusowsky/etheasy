@@ -6,7 +6,7 @@ mod macros;
 
 pub mod types;
 pub mod utils;
-use crate::components::playground::block::BlockState;
+use crate::components::playground::types::BlockState;
 use convert_chart::{convert, UnitType};
 use types::{abi::*, result::*};
 use utils::{uniswap_v3::*, *};

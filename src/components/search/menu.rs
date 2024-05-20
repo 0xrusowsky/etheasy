@@ -4,7 +4,7 @@ use super::docs::{SearchItemData, SEARCH_ITEMS};
 use web_sys::{HtmlElement, HtmlInputElement, KeyboardEvent};
 use yew::prelude::*;
 
-const ITEMS_PER_PAGE: usize = 10;
+const ITEMS_PER_PAGE: usize = 7;
 
 pub enum Msg {
     ExpandCard(usize),
@@ -69,25 +69,35 @@ impl Component for SearchMenuComponent {
             }
             Msg::CheckForAction(e) => {
                 if e.key() == "Enter" {
-                    self.expanded_index = if self.expanded_index.is_some() {
-                        None
-                    } else {
-                        Some(self.start_index + self.focus_index.unwrap())
-                    };
+                    self.expanded_index =
+                        if self.expanded_index.is_some() || self.focus_index.is_none() {
+                            None
+                        } else {
+                            Some(self.start_index + self.focus_index.unwrap())
+                        };
                 } else if (e.meta_key() || e.ctrl_key()) && e.key() == "ArrowDown" {
-                    self.expanded_index = None;
                     self.focus_index = Some(std::cmp::min(ITEMS_PER_PAGE, self.items));
                     self.start_index = std::cmp::max(0, self.items - (ITEMS_PER_PAGE + 1));
                     self.end_index = self.items;
+                    self.expanded_index =
+                        if self.expanded_index.is_some() && self.focus_index.is_some() {
+                            Some(self.start_index + self.focus_index.unwrap())
+                        } else {
+                            None
+                        };
                 } else if (e.meta_key() || e.ctrl_key()) && e.key() == "ArrowUp" {
-                    self.expanded_index = None;
                     self.focus_index = Some(0);
                     self.start_index = 0;
                     self.end_index = std::cmp::min(ITEMS_PER_PAGE + 1, self.items);
+                    self.expanded_index =
+                        if self.expanded_index.is_some() && self.focus_index.is_some() {
+                            Some(self.start_index + self.focus_index.unwrap())
+                        } else {
+                            None
+                        };
                 } else {
                     match e.key().as_str() {
                         "ArrowDown" => {
-                            self.expanded_index = None;
                             self.start_index = match self.focus_index {
                                 Some(i) => {
                                     if i == ITEMS_PER_PAGE && self.end_index < self.items {
@@ -114,9 +124,14 @@ impl Component for SearchMenuComponent {
                                 }
                                 None => Some(0),
                             };
+                            self.expanded_index =
+                                if self.expanded_index.is_some() && self.focus_index.is_some() {
+                                    Some(self.start_index + self.focus_index.unwrap())
+                                } else {
+                                    None
+                                };
                         }
                         "ArrowUp" => {
-                            self.expanded_index = None;
                             self.start_index = match self.focus_index {
                                 Some(i) => {
                                     if i == 0 && self.start_index != 0 {
@@ -139,6 +154,12 @@ impl Component for SearchMenuComponent {
                                 }
                                 None => None,
                             };
+                            self.expanded_index =
+                                if self.expanded_index.is_some() && self.focus_index.is_some() {
+                                    Some(self.start_index + self.focus_index.unwrap())
+                                } else {
+                                    None
+                                };
                         }
                         _ => return false,
                     }
