@@ -17,6 +17,7 @@ pub struct LabelProps {
     // app state
     pub block_index: usize,
     pub import: Option<BlockState>,
+    pub blur_style: &'static str,
 }
 
 #[derive(Debug)]
@@ -84,6 +85,7 @@ impl Component for LabelComponent {
                     oninput={on_input}
                     onblur={on_blur}
                     ref={ctx.props().input_ref.clone()}
+                    style={ctx.props().blur_style}
                 />
             </form>
         }

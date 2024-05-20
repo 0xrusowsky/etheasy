@@ -15,7 +15,7 @@ use alloy_core::primitives::{
     utils::{format_ether, format_units, keccak256},
     B256, U256,
 };
-use base64::{engine::general_purpose::URL_SAFE, Engine as _};
+use base64::prelude::*;
 use chrono::Utc;
 use gloo_console::log;
 use pest::{
@@ -99,6 +99,7 @@ fn eval(expression: Pairs<Rule>, unchecked: bool, blocks: &Vec<BlockState>) -> P
             Rule::function => {
                 let mut pairs = pair.into_inner();
                 let func = pairs.next().unwrap().as_str();
+                let unchecked = if func == "unchecked" { true } else { unchecked };
                 let args = pairs
                     .map(|pair| match pair.as_rule() {
                         Rule::quote => trim_quotes(pair.as_str()).into(),
@@ -302,6 +303,9 @@ const GET_BOTH_UPPER: &[&str] = &[
 ];
 
 fn utility_fn_args(func: &str, args: Vec<ParseResult>) -> ParseResult {
+    if func == "unchecked" && args.len() == 1 {
+        return args[0].clone();
+    }
     match args.len() {
         1 => match &args[0] {
             ParseResult::String(arg0) => match func {
@@ -348,14 +352,16 @@ fn utility_fn_args(func: &str, args: Vec<ParseResult>) -> ParseResult {
                 "len" | "chars" => U256::from(arg0.len()).into(),
                 "lowercase" | "lower" => arg0.to_lowercase().into(),
                 "uppercase" | "upper" => arg0.to_uppercase().into(),
-                "base64_encode" | "b64encode" | "b64_encode" => URL_SAFE.encode(arg0).into(),
-                "base64_decode" | "b64decode" | "b64_decode" => match URL_SAFE.decode(arg0) {
-                    Ok(v) => String::from_utf8(v).ok().into(),
-                    Err(e) => {
-                        log!("Error decoding base64:", e.to_string());
-                        ParseResult::NAN
+                "base64_encode" | "b64encode" | "b64_encode" => BASE64_STANDARD.encode(arg0).into(),
+                "base64_decode" | "b64decode" | "b64_decode" => {
+                    match BASE64_STANDARD.decode(arg0) {
+                        Ok(v) => String::from_utf8(v).ok().into(),
+                        Err(e) => {
+                            log!("Error decoding base64:", e.to_string());
+                            ParseResult::NAN
+                        }
                     }
-                },
+                }
                 // uniswap v3 utils
                 x if is_command!(x, GET_SQRT_RATIO) => {
                     let tick = unwrap_or_nan!(arg0.parse::<i32>());
