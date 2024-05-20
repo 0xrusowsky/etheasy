@@ -219,7 +219,9 @@ impl Component for App {
         <div class="flex flex-col items-center justify-center w-full space-y-8">
         <div class="w-full max-w-md md:max-w-2xl lg:max-w-4xl 2xl:max-w-6xl 4xl:max-w-8xl 8xl:max-w-10xl">
             <div id="playground">
-                if self.search_mode { <SearchMenuComponent on_escape={ctx.link().callback(|_| Msg::SearchOff)}/> }
+                if self.search_mode {
+                    <SearchMenuComponent on_escape={ctx.link().callback(|_| Msg::SearchOff)} focus_ref={NodeRef::default()}/>
+                }
                 <FrameComponent
                     focus_ref={self.playgroundg_ref.clone()}
                     search_mode={self.search_mode}

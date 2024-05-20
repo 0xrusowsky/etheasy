@@ -240,7 +240,7 @@ impl Component for FrameComponent {
                         for (0..self.num_blocks()).rev().map(|index| {
                             html! {
                                 <div class="flex">
-                                <LabelComponent block_index={index}
+                                <LabelComponent block_index={index} blur_style={blur}
                                     input_ref={NodeRef::default()}
                                     on_result={ctx.link().callback(move |result: String| {
                                         Msg::RenameBlock(index, result)})
@@ -248,6 +248,7 @@ impl Component for FrameComponent {
                                     on_enter={ ctx.link().callback(move |_| Msg::FocusBlock) }
                                     import={self.should_import_state(index)}
                                 />
+                                <div class="w-full" style={blur}>
                                 <BlockComponent key={index}
                                     blocks={self.blocks.clone()}
                                     block_index={index}
@@ -269,8 +270,7 @@ impl Component for FrameComponent {
                                     textarea_ref={
                                         if self.focus == index {ctx.props().focus_ref.clone()} else {NodeRef::default()}
                                     }
-                                /></div>
-
+                                /></div></div>
                             }
                         })
                     }
