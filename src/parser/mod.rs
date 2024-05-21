@@ -286,6 +286,9 @@ const GET_AMOUNT0: &[&str] = &[
     "get_amount0",
 ];
 
+const GET_TOKEN0: &[&str] = &["get_token_0", "get_token0", "token_0", "token0"];
+const GET_TOKEN1: &[&str] = &["get_token_1", "get_token1", "token_1", "token1"];
+
 const GET_BOTH_LOWER: &[&str] = &[
     "get_lower_tick_and_sqrt_ratio",
     "get_lower_sqrt_ratio_and_tick",
@@ -401,6 +404,24 @@ fn utility_fn_args(func: &str, args: Vec<ParseResult>) -> ParseResult {
         2 => match (&args[0], &args[1]) {
             (ParseResult::String(arg0), ParseResult::String(arg1)) => match func {
                 "count" => U256::from(count_chars(&arg0, &arg1)).into(),
+                x if is_command!(x, GET_TOKEN0) => {
+                    let token_a = unwrap_or_nan!(arg0.parse::<U256>());
+                    let token_b = unwrap_or_nan!(arg1.parse::<U256>());
+                    if token_a < token_b {
+                        ParseResult::Value(token_a).to_hex_string(false).into()
+                    } else {
+                        ParseResult::Value(token_b).to_hex_string(false).into()
+                    }
+                }
+                x if is_command!(x, GET_TOKEN1) => {
+                    let token_a = unwrap_or_nan!(arg0.parse::<U256>());
+                    let token_b = unwrap_or_nan!(arg1.parse::<U256>());
+                    if token_a > token_b {
+                        ParseResult::Value(token_a).to_hex_string(false).into()
+                    } else {
+                        ParseResult::Value(token_b).to_hex_string(false).into()
+                    }
+                }
                 "abi_encode" => {
                     let args = split_top_level(trim_parentheses(&arg1));
                     unwrap_or_nan!(abi_encode(&arg0, args, false)).into()
@@ -451,6 +472,20 @@ fn utility_fn_args(func: &str, args: Vec<ParseResult>) -> ParseResult {
             (ParseResult::Value(arg0), ParseResult::Value(arg1)) => match func {
                 "root" => arg0.root(arg1.to_string().parse().unwrap_or(2)).into(),
                 "format_units" => format_units(*arg0, arg1.to_string()).ok().into(),
+                x if is_command!(x, GET_TOKEN0) => {
+                    if arg0 < arg1 {
+                        ParseResult::Value(*arg0).to_hex_string(false).into()
+                    } else {
+                        ParseResult::Value(*arg1).to_hex_string(false).into()
+                    }
+                }
+                x if is_command!(x, GET_TOKEN1) => {
+                    if arg0 > arg1 {
+                        ParseResult::Value(*arg0).to_hex_string(false).into()
+                    } else {
+                        ParseResult::Value(*arg1).to_hex_string(false).into()
+                    }
+                }
                 _ => ParseResult::NAN,
             },
             _ => ParseResult::NAN,
