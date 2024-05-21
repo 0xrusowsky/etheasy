@@ -1,5 +1,8 @@
-use super::types::{BlockInput, BlockState};
-use crate::components::{clipboard::ClipboardComponent, json::JsonComponent};
+use super::{
+    clipboard::ClipboardComponent,
+    types::{BlockInput, BlockState},
+};
+use crate::components::json::JsonComponent;
 use crate::parser::types::result::ParseResult;
 use crate::parser::{self, utils};
 

@@ -281,10 +281,6 @@ impl Component for FrameComponent {
     }
 
     fn rendered(&mut self, ctx: &Context<Self>, first_render: bool) {
-        gloo_console::log!(
-            "(rendered) focus_on_render:",
-            &self.focus_on_render.to_string()
-        );
         if !first_render && self.focus_on_render && !ctx.props().search_mode {
             if let Some(textarea) = ctx.props().focus_ref.cast::<HtmlTextAreaElement>() {
                 let _ = textarea.focus();
@@ -293,17 +289,8 @@ impl Component for FrameComponent {
     }
 
     fn changed(&mut self, ctx: &Context<Self>, old_props: &Self::Properties) -> bool {
-        gloo_console::log!(
-            "(changed) focus_on_render:",
-            &self.focus_on_render.to_string(),
-            "search_mode:",
-            &ctx.props().search_mode.to_string()
-        );
         if ctx.props().search_mode != old_props.search_mode {
-            match ctx.props().search_mode {
-                true => self.focus_on_render = true,
-                false => self.focus_on_render = false,
-            };
+            self.focus_on_render = !ctx.props().search_mode;
             return true;
         }
         if ctx.props().import_mode {

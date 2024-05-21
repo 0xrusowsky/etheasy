@@ -1,4 +1,4 @@
-use crate::components::clipboard::ClipboardComponent;
+use crate::components::playground::clipboard::ClipboardComponent;
 use crate::parser::utils::trim_quotes;
 
 use serde_json::{Map, Value};
