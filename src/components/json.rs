@@ -1,3 +1,6 @@
+use crate::components::clipboard::ClipboardComponent;
+use crate::parser::utils::trim_quotes;
+
 use serde_json::{Map, Value};
 use yew::prelude::*;
 
@@ -27,7 +30,7 @@ impl Component for JsonComponent {
 }
 
 fn json_to_html(value: &Value, indent: usize) -> Html {
-    let indent_str = "\u{00a0}".repeat(indent * 4);
+    let indent_str = "\u{00a0}".repeat(indent * 2);
     match value {
         Value::Object(map) => single_obj_to_html(map, indent),
         Value::Array(vec) => {
@@ -57,12 +60,20 @@ fn json_to_html(value: &Value, indent: usize) -> Html {
 }
 
 fn single_obj_to_html(obj: &Map<String, Value>, indent: usize) -> Html {
-    let indent_str = "\u{00a0}".repeat(indent * 4);
+    let indent_str = "\u{00a0}".repeat(indent * 2);
     if obj.is_empty() {
-        html! { <div>{"{},"}</div> }
+        html! { <div>{"{}"}</div> }
     } else if obj.len() == 1 {
         let (k, v) = obj.iter().next().unwrap();
-        html! { <><div><span>{format!("{}{}: {},", indent_str, k, v)}</span></div> if k == "fn_selector" { <br /> } </>}
+        html! {<>
+            <div class="flex">
+                <span class="pr-2">{format!("{}{}: {}", indent_str, k, v)}</span>
+                    <ClipboardComponent
+                        text={trim_quotes(&v.to_string())}
+                        text_style={"text-gray-500 hover:text-gray-50"}
+                    />
+            </div> if k == "fn_selector" { <br /> }
+        </>}
     } else {
         html! { <>
         { for obj.iter().map(|(k, v)| html! {
@@ -77,7 +88,7 @@ fn single_obj_to_html(obj: &Map<String, Value>, indent: usize) -> Html {
 }
 
 fn array_obj_to_html(obj: Option<&Map<String, Value>>, indent: usize) -> Html {
-    let indent_str = "\u{00a0}".repeat(indent * 4);
+    let indent_str = "\u{00a0}".repeat(indent * 2);
     match obj {
         Some(obj) => {
             if obj.is_empty() {
@@ -107,7 +118,7 @@ fn array_obj_to_html(obj: Option<&Map<String, Value>>, indent: usize) -> Html {
 }
 
 fn array_to_html(vec: &Vec<Value>, indent: usize) -> Html {
-    let indent_str = "\u{00a0}".repeat(indent * 4);
+    let indent_str = "\u{00a0}".repeat(indent * 2);
     if vec.is_empty() {
         html! { <div>{"[]"}</div> }
     } else {

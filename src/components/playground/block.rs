@@ -1,5 +1,5 @@
 use super::types::{BlockInput, BlockState};
-use crate::components::json::JsonComponent;
+use crate::components::{clipboard::ClipboardComponent, json::JsonComponent};
 use crate::parser::types::result::ParseResult;
 use crate::parser::{self, utils};
 
@@ -151,8 +151,8 @@ impl Component for BlockComponent {
 
         html! {
             <div class="w-full text-gray-500 grid h-full grid-cols-3 p-4 pb-0 border-b-2 border-gray-100/25 dark:border-b-4 dark:border-dark-primary">
-                <div class="peer/input col-span-1 pt-0 pr-2">
-                    <p class="mt-0 text-gray-400">{ "input:" }</p>
+                <div class="peer/input col-span-1 pr-2">
+                    <p class="mt-0 text-gray-400 pb-1">{ "input:" }</p>
                     <textarea ref={ctx.props().textarea_ref.clone()}
                         oninput={on_text_input}
                         onkeydown={on_key_down}
@@ -171,16 +171,19 @@ impl Component for BlockComponent {
                 </div>
                 if self.is_json() {
                 <div class="col-span-2 overflow-x-auto text-right peer-focus-within/input:text-emerald-400">
-                    <p class="pt-0 text-gray-400">{ "json: " }</p>
+                    <p class="pt-0 text-gray-400">{ "json:" }</p>
                     <div class="w-full text-left"><JsonComponent
                          value={self.output.get_json().unwrap()}/></div>
                 </div>
                 }
                 else if self.is_str() {
-                <div class="col-span-2 overflow-x-auto text-right peer-focus-within/input:text-emerald-400">
-                    <p class="pt-0 text-gray-400">{ "text: " }</p>
-                    <div class="whitespace-normal break-all"> {
-                        for self.output.get_string().unwrap().split('\n').into_iter().map(|v| {
+                <div class="col-span-2 overflow-x-auto peer-focus-within/input:text-emerald-400">
+                    <div class="flex text-gray-400 justify-end">
+                        <p class="pt-0 pr-2">{ "text:" }</p>
+                        <ClipboardComponent text={self.output.to_string()} text_style={"text-gray-400 hover:text-gray-50"}/>
+                    </div>
+                    <div class="text-right whitespace-normal break-all"> {
+                        for self.output.to_string().split('\n').into_iter().map(|v| {
                             html!{
                                 <div class="w-full">{ v }</div>
                             } })
@@ -189,8 +192,11 @@ impl Component for BlockComponent {
                 </div>
                 } else if ctx.props().toggle {
                     <div class="col-span-2 resize-none overflow-y-auto text-right peer-focus-within/input:text-emerald-400">
-                        <p class="pt-0 text-gray-400">{ "hex: " }</p>
-                        <div class="whitespace-normal break-all"> {
+                        <div class="flex text-gray-400 justify-end">
+                            <p class="pt-0 pr-2">{ "hex:" }</p>
+                            <ClipboardComponent text={self.output.to_hex_string(true)} text_style={"text-gray-400 hover:text-gray-50"}/>
+                        </div>
+                        <div class="whitespace-normal break-all pr-2"> {
                             for self.output.to_hex_string(true).split('\n').into_iter().map(|v| {
                                 html!{
                                     <div class="w-full">{ v }</div>
@@ -200,8 +206,11 @@ impl Component for BlockComponent {
                     </div>
                 } else {
                     <div class="col-span-1 overflow-x-auto text-right peer-focus-within/input:text-amber-300 pl-2">
-                        <p class="pt-0 text-gray-400">{ "dec: " }</p>
-                        <div class="whitespace-normal break-all"> {
+                        <div class="flex text-gray-400 justify-end">
+                            <p class="pt-0 pr-2">{ "dec:" }</p>
+                            <ClipboardComponent text={self.output.to_string()} text_style={"text-gray-400 hover:text-gray-50"}/>
+                        </div>
+                        <div class="whitespace-normal break-all pr-2"> {
                             for self.output.to_string().split('\n').into_iter().map(|v| {
                                 html!{
                                     <div class="w-full ">{ v }</div>
@@ -210,8 +219,11 @@ impl Component for BlockComponent {
                         </div>
                     </div>
                     <div class="col-span-1 overflow-x-auto text-right peer-focus-within/input:text-emerald-400">
-                        <p class="pt-0 text-gray-400">{ "hex: " }</p>
-                        <div class="whitespace-normal break-all pl-1"> {
+                        <div class="flex text-gray-400 justify-end">
+                            <p class="pt-0 pr-2">{ "hex:" }</p>
+                            <ClipboardComponent text={self.output.to_hex_string(false)} text_style={"text-gray-400 hover:text-gray-50"}/>
+                        </div>
+                        <div class="whitespace-normal break-all px-2"> {
                             for self.output.to_hex_string(false).split('\n').into_iter().map(|v| {
                                 html!{
                                     <div class="w-full ">{ v }</div>
