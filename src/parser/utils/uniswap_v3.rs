@@ -1,5 +1,8 @@
 use alloy_core::primitives::U256;
-use uniswap_v3_math::{full_math::mul_div_rounding_up, tick_math::get_tick_at_sqrt_ratio};
+use uniswap_v3_math::{
+    full_math::{mul_div, mul_div_rounding_up},
+    tick_math::get_tick_at_sqrt_ratio,
+};
 
 const ZERO: U256 = U256::from_limbs([0, 0, 0, 0]);
 const TWO: U256 = U256::from_limbs([2, 0, 0, 0]);
@@ -26,26 +29,38 @@ pub fn get_v3_quote_from_tick(
         .unwrap();
 
     let quote = if sqrt_ratio_x96 <= i128::MAX.to_string().parse::<U256>().unwrap() {
-        let ratio_x192 = sqrt_ratio_x96.pow(U256::from(2));
+        let ratio_x192 = sqrt_ratio_x96 * sqrt_ratio_x96;
         if in_token1 {
-            U256::from(ratio_x192) * U256::from(10).pow(decimals0)
-                / (U256::from(1) << U256::from(192))
+            mul_div(
+                U256::from(ratio_x192),
+                U256::from(10).pow(decimals0),
+                U256::from(1) << U256::from(192),
+            )
         } else {
-            (U256::from(1) << U256::from(192)) * U256::from(10).pow(decimals1)
-                / U256::from(ratio_x192)
+            mul_div(
+                U256::from(1) << U256::from(192),
+                U256::from(10).pow(decimals1),
+                U256::from(ratio_x192),
+            )
         }
     } else {
         let ratio_x128 = sqrt_ratio_x96 * sqrt_ratio_x96 / (U256::from(1) << U256::from(64));
         if in_token1 {
-            U256::from(ratio_x128) * U256::from(10).pow(decimals0)
-                / (U256::from(1) << U256::from(128))
+            mul_div(
+                U256::from(ratio_x128),
+                U256::from(10).pow(decimals0),
+                U256::from(1) << U256::from(128),
+            )
         } else {
-            (U256::from(1) << U256::from(128)) * U256::from(10).pow(decimals1)
-                / U256::from(ratio_x128)
+            mul_div(
+                U256::from(1) << U256::from(128),
+                U256::from(10).pow(decimals1),
+                U256::from(ratio_x128),
+            )
         }
     };
 
-    Some(quote)
+    quote.ok()
 }
 
 pub fn get_v3_liquidity(
