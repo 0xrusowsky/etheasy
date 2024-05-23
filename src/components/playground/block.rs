@@ -2,9 +2,9 @@ use super::{
     clipboard::ClipboardComponent,
     types::{BlockInput, BlockState},
 };
-use crate::components::json::JsonComponent;
 use crate::parser::types::result::ParseResult;
 use crate::parser::{self, utils};
+use crate::{components::json::JsonComponent, parser::utils::count_chars};
 
 use gloo_console::log;
 use web_sys::HtmlTextAreaElement;
@@ -44,10 +44,6 @@ impl BlockComponent {
     fn parse_input(&mut self, blocks: &Vec<BlockState>) {
         let s = self.input.get_value().replace("\n", "");
         self.output = parser::parse(&s, blocks);
-
-        if self.input.height() > 110 {
-            self.min_height = self.input.height();
-        }
     }
 
     fn is_json(&self) -> bool {
@@ -90,17 +86,31 @@ impl Component for BlockComponent {
             Msg::InputChanged(input) => {
                 self.initialized = true;
                 self.input = input;
+                let lb = count_chars(&self.input.get_value(), "\n");
                 self.parse_input(&ctx.props().blocks);
                 ctx.props().on_result.emit(self.output.clone());
                 // Manually resize textarea to avoid scrollbars
                 if let Some(textarea) = ctx.props().textarea_ref.cast::<HtmlTextAreaElement>() {
                     match textarea.remove_attribute("style") {
-                        Ok(_) => (),
+                        Ok(_) => self.min_height = textarea.client_height(),
                         Err(_) => log!("Failed to remove style attribute"),
                     }
                     if textarea.scroll_height() > textarea.client_height() {
                         textarea
-                            .set_attribute("style", &format!("height: {}px", self.min_height))
+                            .set_attribute(
+                                "style",
+                                &format!(
+                                    "height: {}px",
+                                    std::cmp::max(110, textarea.scroll_height())
+                                ),
+                            )
+                            .expect("Failed to set style");
+                    } else if lb > 0 {
+                        textarea
+                            .set_attribute(
+                                "style",
+                                &format!("height: {}px", textarea.scroll_height()),
+                            )
                             .expect("Failed to set style");
                     }
                 }
@@ -143,24 +153,16 @@ impl Component for BlockComponent {
             let input: HtmlTextAreaElement = e.target_unchecked_into::<HtmlTextAreaElement>();
             Msg::InputChanged(BlockInput::new(input.value(), input.scroll_height() + 10))
         });
-        let block_class = format!("{} {}",
-            if ctx.props().block_index == ctx.props().blocks.len() - 1 {
-                "min-h-[110px]"
-            } else {
-                "focus:min-h-[110px]"
-            },
-            "w-full h-full font-mono focus-within:text-gray-50 placeholder-gray-600 bg-transparent border-0 appearance-none resize-none focus:outline-none focus:ring-0 focus:border-0 active:border-0"
-        );
 
         html! {
             <div class="w-full text-gray-500 grid h-full grid-cols-3 p-4 pb-0 border-b-2 border-gray-100/25 dark:border-b-4 dark:border-dark-primary">
                 <div class="peer/input col-span-1 pr-2">
                     <p class="mt-0 text-gray-400 pb-1">{ "input:" }</p>
                     <textarea ref={ctx.props().textarea_ref.clone()}
+                        class="w-full h-full font-mono focus-within:text-gray-50 placeholder-gray-600 bg-transparent border-0 appearance-none resize-none focus:outline-none focus:ring-0 focus:border-0 active:border-0"
                         oninput={on_text_input}
                         onkeydown={on_key_down}
                         onblur={on_blur}
-                        class={block_class}
                         data-gramm="false"
                         placeholder={
                             // Only first block should have a placeholder
@@ -259,7 +261,15 @@ impl Component for BlockComponent {
         true
     }
 
-    fn rendered(&mut self, ctx: &Context<Self>, _first_render: bool) {
+    fn rendered(&mut self, ctx: &Context<Self>, first_render: bool) {
+        if first_render && ctx.props().block_index == ctx.props().blocks.len() - 1 {
+            let textarea_ref = ctx.props().textarea_ref.clone();
+            if let Some(textarea) = textarea_ref.cast::<HtmlTextAreaElement>() {
+                textarea
+                    .set_attribute("style", "height: 110px")
+                    .expect("Failed to set style");
+            }
+        }
         if ctx.props().import.is_some() {
             let textarea_ref = ctx.props().textarea_ref.clone();
             let input_value = self.input.get_value().clone();

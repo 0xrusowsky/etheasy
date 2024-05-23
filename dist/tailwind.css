@@ -639,10 +639,6 @@ video {
   height: 100%;
 }
 
-.min-h-\[110px\] {
-  min-height: 110px;
-}
-
 .min-h-screen {
   min-height: 100vh;
 }
@@ -1445,10 +1441,6 @@ video {
 .hover\:ring-gray-400:hover {
   --tw-ring-opacity: 1;
   --tw-ring-color: rgb(156 163 175 / var(--tw-ring-opacity));
-}
-
-.focus\:min-h-\[110px\]:focus {
-  min-height: 110px;
 }
 
 .focus\:border-0:focus {

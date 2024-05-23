@@ -157,11 +157,11 @@ impl Component for FrameComponent {
             Msg::NotebookLoaded((states, inputs)) => {
                 self.blocks = states;
                 self.inputs = Some(inputs);
-                self.focus = self.last_block();
             }
             Msg::ImportFinished => {
                 self.inputs = None;
                 self.focus_on_render = true;
+                self.focus = self.last_block();
                 ctx.props().on_import.emit(());
                 return false;
             }
