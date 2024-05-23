@@ -131,8 +131,12 @@ impl Component for App {
                     pg.scroll_into_view();
                 }
                 let link = ctx.link().clone();
-                let timeout = Timeout::new(1_000, move || {
-                    // 1sec delay to scroll to playground
+                let pg = self.playgroundg_ref.clone();
+                let timeout = Timeout::new(800, move || {
+                    // 0.8sec delay to scroll to playground
+                    if let Some(pg) = pg.cast::<HtmlElement>() {
+                        let _ = pg.focus();
+                    };
                     link.send_message(Msg::LandingOff);
                 });
                 self._timeout = Some(timeout);
