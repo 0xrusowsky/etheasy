@@ -510,6 +510,45 @@ fn utility_fn_args(func: &str, args: Vec<ParseResult>) -> ParseResult {
                     x if is_command!(x, GET_BOTH_UPPER) => {
                         get_both_upper(*arg0, *arg1, *arg2).into()
                     }
+                    x if is_command!(x, GET_PRICE) => {
+                        let price1: ParseResult = get_price!(*arg0, ZERO, *arg1, *arg2, true);
+                        let price0: ParseResult = get_price!(*arg0, ONE, *arg1, *arg2, true);
+                        format!("{}\n{}", price0.to_string(), price1.to_string()).into()
+                    }
+                    x if is_command!(x, GET_QUOTE) => {
+                        let price1: ParseResult = get_price!(*arg0, ZERO, *arg1, *arg2, false);
+                        let price0: ParseResult = get_price!(*arg0, ONE, *arg1, *arg2, false);
+                        format!(
+                            "1e{} token0 : {} token1\n1e{} token1 : {} token0",
+                            arg1.to_string(),
+                            price0.to_string(),
+                            arg2.to_string(),
+                            price1.to_string()
+                        )
+                        .into()
+                    }
+                    _ => ParseResult::NAN,
+                }
+            }
+            (ParseResult::String(arg0), ParseResult::Value(arg1), ParseResult::Value(arg2)) => {
+                match func {
+                    x if is_command!(x, GET_PRICE) => {
+                        let price1: ParseResult = get_price!(*arg0, ZERO, *arg1, *arg2, true);
+                        let price0: ParseResult = get_price!(*arg0, ONE, *arg1, *arg2, true);
+                        format!("{}\n{}", price0.to_string(), price1.to_string()).into()
+                    }
+                    x if is_command!(x, GET_QUOTE) => {
+                        let price1: ParseResult = get_price!(*arg0, ZERO, *arg1, *arg2, false);
+                        let price0: ParseResult = get_price!(*arg0, ONE, *arg1, *arg2, false);
+                        format!(
+                            "1e{} token0 : {} token1\n1e{} token1 : {} token0",
+                            arg1.to_string(),
+                            price0.to_string(),
+                            arg2.to_string(),
+                            price1.to_string()
+                        )
+                        .into()
+                    }
                     _ => ParseResult::NAN,
                 }
             }
