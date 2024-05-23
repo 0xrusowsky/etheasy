@@ -30,7 +30,7 @@ impl CommandType {
     }
 }
 
-pub static SEARCH_ITEMS: &[SearchItemData; 45] = &[
+pub static SEARCH_ITEMS: &[SearchItemData; 46] = &[
     // START: INPUT COMMANDS
     SearchItemData {
         id: 0,
@@ -320,7 +320,7 @@ pub static SEARCH_ITEMS: &[SearchItemData; 45] = &[
         command: "unix",
         c_type: CommandType::Function,
         alias: None,
-        params: Some("unix(year: `uint16`, month: `uint8`, day: `uint8`, hour: `uint8`, minute: `uint8`, second: `uint8`)"),
+        params: Some("unix(year: `uint16`, month: `uint8`, day: `uint8`, hour?: `uint8`, minute?: `uint8`, second?: `uint8`)"),
         example: Some("unix(2023, 12, 31, 23, 59, 59)  // unix timestamp, comma separated (1704067199)\nunix(2023-12-31T23:59:59)  // unix timestamp, YYYY-MM-DDTHH:mm:ss (1704067199)\nunix(1704067199)  // formatted timestamp from unix ('2023-12-31 23:59:59')\nunix(1704067199, \"%Y-%m-%dT%H:%M:%S\")  // custom formatted timestamp from unix ('2023-12-31T23:59:59')"),
         desc: "Bidirectional function:\n- Converts a unix timestamp to a human-readable date. Accepts a second argument for the date format.\n- Converts strings of comma-separated values or '%Y-%m-%d %H:%M:%S' format to a unix timestamp.",
     },
@@ -329,7 +329,7 @@ pub static SEARCH_ITEMS: &[SearchItemData; 45] = &[
         command: "get_price_from_tick",
         c_type: CommandType::Function,
         alias: Some("get_price, price_from_tick, price_at_tick"),
-        params: None,
+        params: Some("get_price_from_tick(tick: `int24`, token0?: `bool`, decimals0: `uint8`, decimals1: `uint8`)"),
         example: Some("get_price_from_tick(202919, false, 6, 18)  // get price from tick (\"1 token1 : 1540.921115 token0\")"),
         desc: "Computes the price of a Uniswap V3 pool (in token0 or token1) given a tick value and the token decimals.",
     },
@@ -338,7 +338,7 @@ pub static SEARCH_ITEMS: &[SearchItemData; 45] = &[
         command: "get_tick_from_sqrt_ratio",
         c_type: CommandType::Function,
         alias: Some("get_tick, tick_from_sqrt_ratio, tick_from_sqrt_x96"),
-        params: None,
+        params: Some("get_tick_from_sqrt_ratio(sqrt_ratio: `uint160`)"),
         example: Some("get_tick_from_sqrt_ratio(4295128739)  // get tick from sqrt ratio (\"-887272\")"),
         desc: "Computes the tick of a Uniswap V3 pool given a square root of price as a Q64.96.",
     },
@@ -396,10 +396,19 @@ pub static SEARCH_ITEMS: &[SearchItemData; 45] = &[
         example: Some("get_token1('0x9c58bacc331c9aa871afd802db6379a98e80cedb', '0x6a023ccd1ff6f2045c3309768ead9e68f978f6e1')  // get biggest address"),
         desc: "Retuns the token1 of a Uniswap V3 pool.",
     },
+    SearchItemData {
+        id: 40,
+        command: "get_quote_from_tick",
+        c_type: CommandType::Function,
+        alias: Some("get_quote, quote_from_tick, quote_at_tick"),
+        params: Some("get_quote_from_tick(tick: `int24`, token0?: `bool`, decimals0: `uint8`, decimals1: `uint8`)"),
+        example: Some("get_quote_from_tick(202919, false, 6, 18)  // get price from tick (\"1540921115\")"),
+        desc: "Computes the quote of a Uniswap V3 pool (in token0 or token1) given a tick value and the token decimals.",
+    },
     // END: FUNCTION COMMANDS
     // START: CONVERSION COMMANDS
     SearchItemData {
-        id: 40,
+        id: 41,
         command: "EVM gas units",
         c_type: CommandType::Conversion,
         alias: Some("wei, kwei, mwei, gwei, szabo, finney, ether"),
@@ -408,7 +417,7 @@ pub static SEARCH_ITEMS: &[SearchItemData; 45] = &[
         desc: "Converts the input value to the equivalent amount. Follows the pattern: 'unit_from' to 'unit_to'.\nWhen 'unit_to' is bigger than 'unit_from', the result is rounded down.",
     },
     SearchItemData {
-        id: 41,
+        id: 42,
         command: "Time units",
         c_type: CommandType::Conversion,
         alias: Some("seconds, minutes, hours, days, weeks, months, years"),
@@ -419,7 +428,7 @@ pub static SEARCH_ITEMS: &[SearchItemData; 45] = &[
     // END: CONVERSION COMMANDS
     // START: CONSTANTS
     SearchItemData {
-        id: 42,
+        id: 43,
         command: "max_uint",
         c_type: CommandType::Constant,
         alias: Some("max_u256, type(uint256).max"),
@@ -428,7 +437,7 @@ pub static SEARCH_ITEMS: &[SearchItemData; 45] = &[
         desc: "Evaluates to the max uint possible with 32 bytes or 256 bits",
     },
     SearchItemData {
-        id: 43,
+        id: 44,
         command: "zero_address",
         c_type: CommandType::Constant,
         alias: Some("address(0), addr(0), address_zero, zadd"),
@@ -437,7 +446,7 @@ pub static SEARCH_ITEMS: &[SearchItemData; 45] = &[
         desc: "Evaluates to the zero address",
     },
     SearchItemData {
-        id: 44,
+        id: 45,
         command: "now",
         c_type: CommandType::Constant,
         alias: None,
