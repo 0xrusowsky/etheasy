@@ -300,8 +300,6 @@ const GET_BOTH_LOWER: &[&str] = &[
 const GET_BOTH_UPPER: &[&str] = &[
     "get_upper_tick_and_sqrt_ratio",
     "get_upper_sqrt_ratio_and_tick",
-    "get_upper_sqrt_ratio_both",
-    "get_upper_tick_both",
     "get_upper_both",
 ];
 
@@ -331,7 +329,7 @@ fn utility_fn_args(func: &str, args: Vec<ParseResult>) -> ParseResult {
                     let u = arg0.parse::<U256>().unwrap_or_default();
                     u256_to_address(u).to_string().into()
                 }
-                "keccak256" | "sha3" => keccak256(arg0).to_string().into(),
+                "keccak256" | "sha3" | "hash" => keccak256(arg0).to_string().into(),
                 "selector" => keccak256(arg0.replace(' ', "")).to_string()[..10]
                     .to_string()
                     .into(),

@@ -58,12 +58,6 @@ impl Component for SearchCardComponent {
             <div class="flex">
                 <p class="pr-2 dark:text-gray-300/50 text-gray-200/50">{"command:"}</p>
                 <p class="text-xs font-mono font-bold" style="padding-top: 0.175rem;">{format!("{} ({:#?})", item.command, item.c_type)}</p>
-                if item.alias.is_some() {
-                    <div class="flex ml-auto pl-6">
-                        <p class="pr-2 dark:text-gray-300/50 text-gray-200/50">{"aliases:"}</p>
-                        <p class="text-xs font-mono font-bold" style="padding-top: 0.175rem;">{item.alias}</p>
-                    </div>
-                }
             </div>
             <div class={"flex"}><p class="pr-2 dark:text-gray-300/50 text-gray-200/50">{"desc:"}</p>
             <div class="flex-col"> <p>{item.desc.split('\n').into_iter().next()}</p></div>
@@ -114,7 +108,7 @@ impl Component for DetailCardComponent {
                         if item.alias.is_some() {
                             <div class="flex pt-1 pb-3">
                                 <p class="pl-5 pr-2 text-emerald-400/80 font-bold">{"aliases:"}</p>
-                                <p class="font-mono" style="padding-top: 0.1rem;">{item.alias}</p>
+                                <p class="font-mono pl-2" style="padding-top: 0.1rem;">{item.alias}</p>
                             </div>
                         }
                         <div class="flex pt-3">
@@ -167,12 +161,16 @@ fn format_code_with_comments(
     html! {
         for code.split('\n').map(|line| {
             if let Some(comment_start) = line.find("//") {
-                let (code_part, comment_part) = line.split_at(comment_start);
-                html! {
-                    <div class="flex">
-                        <span>{parse_line(code_part, param_style)}</span>
-                        <span class={comment_style}>{comment_part}</span>
-                    </div>
+                if comment_start == 0 {
+                    html! { <div class="pb-1"><span class={comment_style}>{line}</span></div> }
+                } else {
+                    let (code_part, comment_part) = line.split_at(comment_start);
+                    html! {
+                        <div class="flex">
+                            <span>{parse_line(code_part, param_style)}</span>
+                            <span class={comment_style}>{comment_part}</span>
+                        </div>
+                    }
                 }
             } else {
                 html! { <div>{parse_line(line, param_style)}</div> }
