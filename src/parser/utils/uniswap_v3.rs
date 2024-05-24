@@ -5,8 +5,10 @@ use uniswap_v3_math::{
 };
 
 const ZERO: U256 = U256::from_limbs([0, 0, 0, 0]);
+const ONE: U256 = U256::from_limbs([1, 0, 0, 0]);
 const TWO: U256 = U256::from_limbs([2, 0, 0, 0]);
 const Q96: U256 = uniswap_v3_math::sqrt_price_math::Q96;
+const DENOM_9: U256 = U256::from_limbs([1000000000, 0, 0, 0]);
 const DENOM_18: U256 = U256::from_limbs([1000000000000000000, 0, 0, 0]);
 const MIN_TICK: i32 = uniswap_v3_math::tick_math::MIN_TICK;
 const MAX_TICK: i32 = uniswap_v3_math::tick_math::MAX_TICK;
@@ -220,29 +222,39 @@ pub fn get_both_upper(liquidity: U256, use_amount0: U256, sqrt_price: U256) -> O
     }
 }
 
-pub fn price_to_sqrt_ratio(price: PriceInput) -> Option<U256> {
-    // Calculate the square root with the max possible precision
-    let sqrt = match price {
-        PriceInput::S(s) => match s.parse::<f64>() {
-            Ok(x) => format!("{:.18}", x.sqrt()),
-            Err(_) => return None,
-        },
+fn price_input_to_u256(price: PriceInput) -> (U256, bool) {
+    match price {
+        PriceInput::S(s) => {
+            let mut s = s.split('.');
+            let int = s.next().unwrap().parse::<U256>().unwrap();
+            let (frac_len, frac) = match s.next() {
+                Some(f) => (f.len(), f.parse::<U256>().unwrap()),
+                None => (0, ZERO),
+            };
+            (
+                int * DENOM_18 + frac * U256::from(10).pow(U256::from(18 - frac_len)),
+                true,
+            )
+        }
         PriceInput::U(u) => {
-            if u > U256::from(2).pow(U256::from(64)) {
-                format!("{:.18}", u.root(2))
+            if u < "115792089237316195423570985008687907853269984665640564039457"
+                .parse::<U256>()
+                .unwrap()
+            {
+                (u * DENOM_18, true)
             } else {
-                let x = u.to_string().parse::<f64>().unwrap();
-                format!("{:.18}", x.sqrt())
+                (u, false)
             }
         }
-    };
+    }
+}
+pub fn price_to_sqrt_ratio(price: PriceInput) -> Option<U256> {
+    // Calculate the square root with the max possible precision
+    let (price, scaled) = price_input_to_u256(price);
 
     // Handle integer and fractional parts separately
-    let mut s = sqrt.split('.');
-    let int = s.next().unwrap().parse::<U256>().unwrap();
-    let frac = s.next().unwrap().parse::<U256>().unwrap();
-    let sqrt = int * DENOM_18 + frac;
-    let result = mul_div(sqrt, Q96, DENOM_18).unwrap();
+    let sqrt = price.root(2);
+    let result = mul_div(sqrt, Q96, if scaled { DENOM_9 } else { ONE }).unwrap();
 
     if result > MAX_SQRT_RATIO || result < MIN_SQRT_RATIO {
         None
