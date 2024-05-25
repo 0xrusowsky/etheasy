@@ -30,7 +30,7 @@ impl CommandType {
     }
 }
 
-pub static SEARCH_ITEMS: &[SearchItemData; 49] = &[
+pub static SEARCH_ITEMS: &[SearchItemData; 48] = &[
     // START: INPUT COMMANDS
     SearchItemData {
         id: 0,
@@ -473,14 +473,15 @@ pub static SEARCH_ITEMS: &[SearchItemData; 49] = &[
         example: Some("get_tick_from_price(0.0003)  // tick (-81122)"),
         desc: "Computes the tick of a Uniswap V3 pool given a price (ratio between tokens, accounting for its decimals).\n Note that the tick may need to be adjusted basead on the pool's tick spacing.",
     },
-    SearchItemData {
-        id: 48,
-        command: "get_upper_tick_and_sqrt_ratio",
-        c_type: CommandType::Function,
-        alias: Some("get_upper_sqrt_ratio_and_tick, get_upper_both"),
-        params: Some("get_upper_tick_and_sqrt_ratio(\u{00a0}\u{00a0}\u{00a0}\n\u{00a0}\u{00a0}liquidity: `uint128`,\n\u{00a0}\u{00a0}use_amount0: `uint256`,\n\u{00a0}\u{00a0}sqrt_price: `uint160`\n)"),
-        example: None,
-        desc: "Computes the tick of a Uniswap V3 pool given a price (ratio between tokens, accounting for its decimals).\n Note that the tick may need to be adjusted basead on the pool's tick spacing.",
-    },
+    // TODO: fix calculation
+    // SearchItemData {
+    //     id: 48,
+    //     command: "get_upper_tick_and_sqrt_ratio",
+    //     c_type: CommandType::Function,
+    //     alias: Some("get_upper_sqrt_ratio_and_tick, get_upper_both"),
+    //     params: Some("get_upper_tick_and_sqrt_ratio(\u{00a0}\u{00a0}\u{00a0}\n\u{00a0}\u{00a0}liquidity: `uint128`,\n\u{00a0}\u{00a0}use_amount0: `uint256`,\n\u{00a0}\u{00a0}sqrt_price: `uint160`\n)"),
+    //     example: None,
+    //     desc: "Computes the tick of a Uniswap V3 pool given a price (ratio between tokens, accounting for its decimals).\n Note that the tick may need to be adjusted basead on the pool's tick spacing.",
+    // },
     // END: FUNCTION COMMANDS
 ];
