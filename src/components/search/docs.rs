@@ -66,7 +66,7 @@ pub static SEARCH_ITEMS: &[SearchItemData; 48] = &[
         c_type: CommandType::Function,
         alias: None,
         params: None,
-        example: Some("unchecked(0 - 1)                     // unchecked operation (max_uint)\nunchecked(format_units(2**256, 4))   // composed unchecked operation ('0.0000')"),
+        example: Some("unchecked(0 - 1)                     // unchecked operation (max_uint)\nunchecked(format_units(2**256, 4))   // unchecked composition ('0.0000')"),
         desc: "Enables unchecked math for any calculation performed inside its brackets.",
     },
     // START: OPERATION COMMANDS
