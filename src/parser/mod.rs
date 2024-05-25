@@ -118,7 +118,7 @@ fn eval(expression: Pairs<Rule>, unchecked: bool, blocks: &Vec<BlockState>) -> P
                 let value_str = pair.as_str().trim().to_lowercase();
                 if value_str.contains("e") {
                     scientific_to_u256(&value_str).into()
-                } else if value_str.starts_with("-") {
+                } else if value_str.starts_with("-") || value_str.contains(".") {
                     value_str.into()
                 } else {
                     value_str.parse::<U256>().ok().into()
@@ -300,9 +300,17 @@ const GET_BOTH_LOWER: &[&str] = &[
 const GET_BOTH_UPPER: &[&str] = &[
     "get_upper_tick_and_sqrt_ratio",
     "get_upper_sqrt_ratio_and_tick",
-    "get_upper_sqrt_ratio_both",
-    "get_upper_tick_both",
     "get_upper_both",
+];
+
+const GET_TICK_FROM_PRICE: &[&str] = &["get_tick_from_price", "tick_from_price"];
+const GET_SQRT_RATIO_FROM_PRICE: &[&str] = &[
+    "get_sqrt_ratio_from_price",
+    "get_sqrt_x96_from_price",
+    "sqrt_ratio_from_price",
+    "sqrt_x96_from_price",
+    "get_sqrt_from_price",
+    "sqrt_from_price",
 ];
 
 fn utility_fn_args(func: &str, args: Vec<ParseResult>) -> ParseResult {
@@ -321,7 +329,7 @@ fn utility_fn_args(func: &str, args: Vec<ParseResult>) -> ParseResult {
                     let u = arg0.parse::<U256>().unwrap_or_default();
                     u256_to_address(u).to_string().into()
                 }
-                "keccak256" | "sha3" => keccak256(arg0).to_string().into(),
+                "keccak256" | "sha3" | "hash" => keccak256(arg0).to_string().into(),
                 "selector" => keccak256(arg0.replace(' ', "")).to_string()[..10]
                     .to_string()
                     .into(),
@@ -372,6 +380,20 @@ fn utility_fn_args(func: &str, args: Vec<ParseResult>) -> ParseResult {
                         unwrap_or_nan!(uniswap_v3_math::tick_math::get_sqrt_ratio_at_tick(tick));
                     sqrt_x96.into()
                 }
+                x if is_command!(x, GET_SQRT_RATIO_FROM_PRICE) => {
+                    price_to_sqrt_ratio(PriceInput::S(arg0.to_owned())).into()
+                }
+                x if is_command!(x, GET_TICK_FROM_PRICE) => {
+                    match price_to_sqrt_ratio(PriceInput::S(arg0.to_owned())) {
+                        Some(sqrt_x96) => {
+                            uniswap_v3_math::tick_math::get_tick_at_sqrt_ratio(sqrt_x96)
+                                .unwrap()
+                                .to_string()
+                                .into()
+                        }
+                        None => ParseResult::NAN,
+                    }
+                }
                 // miscelaneous
                 "unix" => U256::from(parse_unix(arg0.to_owned())).into(),
                 _ => ParseResult::NAN,
@@ -393,6 +415,20 @@ fn utility_fn_args(func: &str, args: Vec<ParseResult>) -> ParseResult {
                     let sqrt_x96 =
                         unwrap_or_nan!(uniswap_v3_math::tick_math::get_sqrt_ratio_at_tick(tick));
                     sqrt_x96.into()
+                }
+                x if is_command!(x, GET_SQRT_RATIO_FROM_PRICE) => {
+                    price_to_sqrt_ratio(PriceInput::U(*arg0)).into()
+                }
+                x if is_command!(x, GET_TICK_FROM_PRICE) => {
+                    match price_to_sqrt_ratio(PriceInput::U(*arg0)) {
+                        Some(sqrt_x96) => {
+                            uniswap_v3_math::tick_math::get_tick_at_sqrt_ratio(sqrt_x96)
+                                .unwrap()
+                                .to_string()
+                                .into()
+                        }
+                        None => ParseResult::NAN,
+                    }
                 }
                 // miscelaneous
                 "format_units" | "format_ether" => format_ether(*arg0).into(),

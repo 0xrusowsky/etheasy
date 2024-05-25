@@ -5,12 +5,23 @@ use uniswap_v3_math::{
 };
 
 const ZERO: U256 = U256::from_limbs([0, 0, 0, 0]);
+const ONE: U256 = U256::from_limbs([1, 0, 0, 0]);
 const TWO: U256 = U256::from_limbs([2, 0, 0, 0]);
 const Q96: U256 = uniswap_v3_math::sqrt_price_math::Q96;
+const DENOM_9: U256 = U256::from_limbs([1000000000, 0, 0, 0]);
+const DENOM_18: U256 = U256::from_limbs([1000000000000000000, 0, 0, 0]);
 const MIN_TICK: i32 = uniswap_v3_math::tick_math::MIN_TICK;
 const MAX_TICK: i32 = uniswap_v3_math::tick_math::MAX_TICK;
 const MIN_SQRT_RATIO: U256 = uniswap_v3_math::tick_math::MIN_SQRT_RATIO;
 const MAX_SQRT_RATIO: U256 = uniswap_v3_math::tick_math::MAX_SQRT_RATIO;
+
+fn _get_tick_at_sqrt_ratio(sqrt_price: U256) -> Option<i32> {
+    match sqrt_price {
+        MIN_SQRT_RATIO => Some(MIN_TICK),
+        MAX_SQRT_RATIO => Some(MAX_TICK),
+        _ => get_tick_at_sqrt_ratio(sqrt_price).ok(),
+    }
+}
 
 pub fn get_v3_quote_from_tick(
     tick: i32,
@@ -162,7 +173,7 @@ pub fn get_lower_sqrt_price(liquidity: U256, use_amount1: U256, sqrt_price: U256
     };
 
     let impact = use_amount1 * Q96 / liquidity;
-    if impact > sqrt_price {
+    if impact >= sqrt_price {
         Some(MIN_SQRT_RATIO)
     } else {
         Some(sqrt_price - impact)
@@ -172,7 +183,7 @@ pub fn get_lower_sqrt_price(liquidity: U256, use_amount1: U256, sqrt_price: U256
 pub fn get_lower_tick(liquidity: U256, use_amount1: U256, sqrt_price: U256) -> Option<i32> {
     match get_lower_sqrt_price(liquidity, use_amount1, sqrt_price) {
         None => None,
-        Some(sqrt_pa) => get_tick_at_sqrt_ratio(sqrt_pa).ok(),
+        Some(sqrt_pa) => _get_tick_at_sqrt_ratio(sqrt_pa),
     }
 }
 
@@ -182,7 +193,10 @@ pub fn get_both_lower(liquidity: U256, use_amount1: U256, sqrt_price: U256) -> O
         Some(sqrt_pa) => Some(format!(
             "sqrtPa: {}\n tick: {}",
             &sqrt_pa,
-            get_tick_at_sqrt_ratio(sqrt_pa).unwrap()
+            match _get_tick_at_sqrt_ratio(sqrt_pa) {
+                Some(tick) => tick,
+                None => return None,
+            }
         )),
     }
 }
@@ -194,9 +208,12 @@ pub fn get_upper_sqrt_price(liquidity: U256, use_amount0: U256, sqrt_price: U256
 
     let impact = use_amount0 * sqrt_price;
 
-    if impact > Q96 * liquidity {
+    if impact >= Q96 * liquidity {
+        gloo_console::log!("MAX_SQRT_RATIO");
         Some(MAX_SQRT_RATIO)
     } else {
+        gloo_console::log!("div:", (Q96 * liquidity - impact).to_string());
+        gloo_console::log!("num:", (Q96 * liquidity).to_string());
         Some(sqrt_price * liquidity * Q96 / (Q96 * liquidity - impact))
     }
 }
@@ -204,7 +221,10 @@ pub fn get_upper_sqrt_price(liquidity: U256, use_amount0: U256, sqrt_price: U256
 pub fn get_upper_tick(liquidity: U256, use_amount0: U256, sqrt_price: U256) -> Option<i32> {
     match get_upper_sqrt_price(liquidity, use_amount0, sqrt_price) {
         None => None,
-        Some(sqrt_pb) => get_tick_at_sqrt_ratio(sqrt_pb).ok(),
+        Some(sqrt_pb) => {
+            gloo_console::log!("sqrt_pb:", sqrt_pb.to_string());
+            _get_tick_at_sqrt_ratio(sqrt_pb)
+        }
     }
 }
 
@@ -214,7 +234,56 @@ pub fn get_both_upper(liquidity: U256, use_amount0: U256, sqrt_price: U256) -> O
         Some(sqrt_pb) => Some(format!(
             "sqrtPb: {}\n tick: {}",
             &sqrt_pb,
-            get_tick_at_sqrt_ratio(sqrt_pb).unwrap()
+            match _get_tick_at_sqrt_ratio(sqrt_pb) {
+                Some(tick) => tick,
+                None => return None,
+            }
         )),
     }
+}
+
+fn price_input_to_u256(price: PriceInput) -> (U256, bool) {
+    match price {
+        PriceInput::S(s) => {
+            let mut s = s.split('.');
+            let int = s.next().unwrap().parse::<U256>().unwrap();
+            let (frac_len, frac) = match s.next() {
+                Some(f) => (f.len(), f.parse::<U256>().unwrap()),
+                None => (0, ZERO),
+            };
+            (
+                int * DENOM_18 + frac * U256::from(10).pow(U256::from(18 - frac_len)),
+                true,
+            )
+        }
+        PriceInput::U(u) => {
+            if u < "115792089237316195423570985008687907853269984665640564039457"
+                .parse::<U256>()
+                .unwrap()
+            {
+                (u * DENOM_18, true)
+            } else {
+                (u, false)
+            }
+        }
+    }
+}
+pub fn price_to_sqrt_ratio(price: PriceInput) -> Option<U256> {
+    // Calculate the square root with the max possible precision
+    let (price, scaled) = price_input_to_u256(price);
+
+    // Handle integer and fractional parts separately
+    let sqrt = price.root(2);
+    let result = mul_div(sqrt, Q96, if scaled { DENOM_9 } else { ONE }).unwrap();
+
+    if result > MAX_SQRT_RATIO || result < MIN_SQRT_RATIO {
+        None
+    } else {
+        Some(result)
+    }
+}
+
+pub enum PriceInput {
+    S(String),
+    U(U256),
 }
