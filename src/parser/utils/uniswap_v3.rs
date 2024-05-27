@@ -283,6 +283,14 @@ pub fn price_to_sqrt_ratio(price: PriceInput) -> Option<U256> {
     }
 }
 
+pub fn get_pool_tick(tick: i32, spacing: u32) -> Option<i32> {
+    let spacing = spacing as i32;
+    if spacing == 0 || tick < MIN_TICK || tick > MAX_TICK {
+        return None;
+    }
+    Some(tick / spacing * spacing)
+}
+
 pub enum PriceInput {
     S(String),
     U(U256),

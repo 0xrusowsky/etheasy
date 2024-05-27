@@ -231,6 +231,13 @@ fn eval(expression: Pairs<Rule>, unchecked: bool, blocks: &Vec<BlockState>) -> P
     )
 }
 
+const GET_POOL_TICK: &[&str] = &[
+    "get_tick_with_spacing",
+    "get_tick_from_spacing",
+    "get_tick_from_pool",
+    "get_pool_tick",
+];
+
 const GET_TICK: &[&str] = &[
     "get_tick_from_sqrt_ratio",
     "get_tick_from_sqrt_x96",
@@ -524,6 +531,14 @@ fn utility_fn_args(func: &str, args: Vec<ParseResult>) -> ParseResult {
                     let units: usize = unwrap_or_nan!(arg1.to_string().parse::<u8>()).into();
                     utils::right_pad(arg0, units).into()
                 }
+                x if is_command!(x, GET_POOL_TICK) => {
+                    let tick = unwrap_or_nan!(arg0.parse::<i32>());
+                    let spacing = unwrap_or_nan!(arg1.to_string().parse::<u32>());
+                    match uniswap_v3::get_pool_tick(tick, spacing) {
+                        Some(tick) => tick.to_string().into(),
+                        None => ParseResult::NAN,
+                    }
+                }
                 _ => ParseResult::NAN,
             },
             (ParseResult::Value(arg0), ParseResult::Value(arg1)) => match func {
@@ -541,6 +556,14 @@ fn utility_fn_args(func: &str, args: Vec<ParseResult>) -> ParseResult {
                         ParseResult::Value(*arg0).to_hex_string(false).into()
                     } else {
                         ParseResult::Value(*arg1).to_hex_string(false).into()
+                    }
+                }
+                x if is_command!(x, GET_POOL_TICK) => {
+                    let tick = unwrap_or_nan!(arg0.to_string().parse::<i32>());
+                    let spacing = unwrap_or_nan!(arg1.to_string().parse::<u32>());
+                    match uniswap_v3::get_pool_tick(tick, spacing) {
+                        Some(tick) => tick.to_string().into(),
+                        None => ParseResult::NAN,
                     }
                 }
                 _ => ParseResult::NAN,
