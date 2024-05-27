@@ -378,7 +378,7 @@ pub static SEARCH_ITEMS: &[SearchItemData; 48] = &[
         command: "get_price_from_tick",
         c_type: CommandType::Function,
         alias: Some("get_price, price_from_tick, price_at_tick"),
-        params: Some("get_price_from_tick(tick: `int24`, token0?: `bool`, decimals0: `uint8`, decimals1: `uint8`)"),
+        params: Some("get_price_from_tick(\u{00a0}\u{00a0}\u{00a0}\n\u{00a0}\u{00a0}tick: `int24`,\n\u{00a0}\u{00a0}decimals0: `uint8`,\n\u{00a0}\u{00a0}decimals1: `uint8`,\n\u{00a0}\u{00a0}token0?: `bool`\n)"),
         example: Some("// get price from tick (\"1 token1 : 1540.921115 token0\")\nget_price_from_tick(202919, false, 6, 18)"),
         desc: "Computes the price of a Uniswap V3 pool (in token0 or token1) given a tick value and the token decimals.",
     },

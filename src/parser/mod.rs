@@ -114,6 +114,14 @@ fn eval(expression: Pairs<Rule>, unchecked: bool, blocks: &Vec<BlockState>) -> P
                 .parse::<U256>()
                 .ok()
                 .into(),
+            Rule::min_tick => uniswap_v3_math::tick_math::MIN_TICK.to_string().into(),
+            Rule::max_tick => uniswap_v3_math::tick_math::MAX_TICK
+                .to_string()
+                .parse::<U256>()
+                .unwrap()
+                .into(),
+            Rule::min_sqrt_x96 => uniswap_v3_math::tick_math::MIN_SQRT_RATIO.into(),
+            Rule::max_sqrt_x96 => uniswap_v3_math::tick_math::MAX_SQRT_RATIO.into(),
             Rule::num => {
                 let value_str = pair.as_str().trim().to_lowercase();
                 if value_str.contains("e") {
@@ -151,7 +159,7 @@ fn eval(expression: Pairs<Rule>, unchecked: bool, blocks: &Vec<BlockState>) -> P
                 } else if id == "false" {
                     U256::from(0).into()
                 } else {
-                    match blocks.iter().find(|b| b.get_id() == id) {
+                    match blocks.iter().find(|b| b.get_id() == id.to_lowercase()) {
                         Some(block) => block.get_result().into(),
                         None => ParseResult::NAN,
                     }
@@ -273,9 +281,11 @@ const GET_LIQUIDITY: &[&str] = &[
 ];
 
 const GET_AMOUNT1: &[&str] = &[
-    "get_total_amount1_from_liquidity",
-    "total_amount1_from_liquidity",
-    "get_total_amount1",
+    "get_amount1_from_liquidity",
+    "get_amount1_from_range",
+    "amount1_from_liquidity",
+    "amount1_from_range",
+    "get_amount1",
 ];
 
 const GET_AMOUNT0: &[&str] = &[
@@ -316,6 +326,17 @@ const GET_SQRT_RATIO_FROM_PRICE: &[&str] = &[
 fn utility_fn_args(func: &str, args: Vec<ParseResult>) -> ParseResult {
     if func == "unchecked" && args.len() == 1 {
         return args[0].clone();
+    } else if func == "concat" {
+        return args
+            .iter()
+            .map(|arg| match arg {
+                ParseResult::String(s) => s.to_string(),
+                ParseResult::Value(u) => u.to_string(),
+                _ => "".to_string(),
+            })
+            .collect::<Vec<String>>()
+            .join(", ")
+            .into();
     }
     match args.len() {
         1 => match &args[0] {
@@ -547,13 +568,13 @@ fn utility_fn_args(func: &str, args: Vec<ParseResult>) -> ParseResult {
                         get_both_upper(*arg0, *arg1, *arg2).into()
                     }
                     x if is_command!(x, GET_PRICE) => {
-                        let price1: ParseResult = get_price!(*arg0, ZERO, *arg1, *arg2, true);
-                        let price0: ParseResult = get_price!(*arg0, ONE, *arg1, *arg2, true);
+                        let price1: ParseResult = get_price!(*arg0, *arg1, *arg2, ZERO, true);
+                        let price0: ParseResult = get_price!(*arg0, *arg1, *arg2, ONE, true);
                         format!("{}\n{}", price0.to_string(), price1.to_string()).into()
                     }
                     x if is_command!(x, GET_QUOTE) => {
-                        let price1: ParseResult = get_price!(*arg0, ZERO, *arg1, *arg2, false);
-                        let price0: ParseResult = get_price!(*arg0, ONE, *arg1, *arg2, false);
+                        let price1: ParseResult = get_price!(*arg0, *arg1, *arg2, ZERO, false);
+                        let price0: ParseResult = get_price!(*arg0, *arg1, *arg2, ONE, false);
                         format!(
                             "1e{} token0 : {} token1\n1e{} token1 : {} token0",
                             arg1.to_string(),
@@ -569,13 +590,13 @@ fn utility_fn_args(func: &str, args: Vec<ParseResult>) -> ParseResult {
             (ParseResult::String(arg0), ParseResult::Value(arg1), ParseResult::Value(arg2)) => {
                 match func {
                     x if is_command!(x, GET_PRICE) => {
-                        let price1: ParseResult = get_price!(*arg0, ZERO, *arg1, *arg2, true);
-                        let price0: ParseResult = get_price!(*arg0, ONE, *arg1, *arg2, true);
+                        let price1: ParseResult = get_price!(*arg0, *arg1, *arg2, ZERO, true);
+                        let price0: ParseResult = get_price!(*arg0, *arg1, *arg2, ONE, true);
                         format!("{}\n{}", price0.to_string(), price1.to_string()).into()
                     }
                     x if is_command!(x, GET_QUOTE) => {
-                        let price1: ParseResult = get_price!(*arg0, ZERO, *arg1, *arg2, false);
-                        let price0: ParseResult = get_price!(*arg0, ONE, *arg1, *arg2, false);
+                        let price1: ParseResult = get_price!(*arg0, *arg1, *arg2, ZERO, false);
+                        let price0: ParseResult = get_price!(*arg0, *arg1, *arg2, ONE, false);
                         format!(
                             "1e{} token0 : {} token1\n1e{} token1 : {} token0",
                             arg1.to_string(),

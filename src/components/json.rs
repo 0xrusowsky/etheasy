@@ -1,6 +1,7 @@
 use crate::components::playground::clipboard::ClipboardComponent;
-use crate::parser::utils::trim_quotes;
+use crate::parser::utils::{trim_quotes, u256_to_address};
 
+use alloy_core::primitives::U256;
 use serde_json::{Map, Value};
 use yew::prelude::*;
 
@@ -65,6 +66,14 @@ fn single_obj_to_html(obj: &Map<String, Value>, indent: usize) -> Html {
         html! { <div>{"{}"}</div> }
     } else if obj.len() == 1 {
         let (k, v) = obj.iter().next().unwrap();
+        let v = if k == "address" {
+            let u = trim_quotes(&v.to_string())
+                .parse::<U256>()
+                .unwrap_or_default();
+            format!("\"{}\"", u256_to_address(u).to_string())
+        } else {
+            v.to_string()
+        };
         html! {<>
             <div class="flex">
                 <span class="pr-2">{format!("{}{}: {}", indent_str, k, v)}</span>
@@ -95,11 +104,22 @@ fn array_obj_to_html(obj: Option<&Map<String, Value>>, indent: usize) -> Html {
                 html! { <div>{format!("{}{}", indent_str, "{},")}</div> }
             } else if obj.len() == 1 {
                 html! { <>
-                { for obj.iter().map(|(_, v)| html! {
-                    <div>
-                        <span>{format!("{}{},", indent_str, v)}</span>
+                { for obj.iter().map(|(k, v)| {
+                    let v = if k == "address" {
+                        let u = trim_quotes(&v.to_string()).parse::<U256>().unwrap_or_default();
+                        format!("\"{}\"", u256_to_address(u).to_string())
+                    } else {
+                        v.to_string()
+                    };
+                    html! {
+                    <div class="flex">
+                        <span class="pr-2">{format!("{}{},", indent_str, v)}</span>
+                        <ClipboardComponent
+                            text={trim_quotes(&v)}
+                            text_style={"text-gray-500 hover:text-gray-50"}
+                        />
                     </div>
-                })}
+                }})}
                 </> }
             } else {
                 html! { <>

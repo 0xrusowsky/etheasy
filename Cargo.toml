@@ -23,7 +23,7 @@ web-sys = { version = "0.3.69", features = [
     "HtmlElement",
     "DomRect",
     "ScrollIntoViewOptions",
-    "ScrollBehavior"
+    "ScrollBehavior",
 ] }
 yew = { version = "0.21.0", features = ["csr"] }
 yew-router = "0.18.0"
