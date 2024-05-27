@@ -29,7 +29,7 @@ macro_rules! is_command {
 
 #[macro_export]
 macro_rules! get_price {
-    ($tick_u256:expr, $in_token1:expr, $decimals0:expr, $decimals1:expr, $format_output:expr) => {{
+    ($tick_u256:expr, $decimals0:expr, $decimals1:expr, $in_token1:expr, $format_output:expr) => {{
         let tick = unwrap_or_nan!($tick_u256.to_string().parse::<i32>());
         let in_token1 = match $in_token1 {
             ZERO => false,
