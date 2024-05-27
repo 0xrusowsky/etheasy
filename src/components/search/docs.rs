@@ -30,7 +30,7 @@ impl CommandType {
     }
 }
 
-pub static SEARCH_ITEMS: &[SearchItemData; 48] = &[
+pub static SEARCH_ITEMS: &[SearchItemData; 49] = &[
     // START: INPUT COMMANDS
     SearchItemData {
         id: 0,
@@ -461,7 +461,7 @@ pub static SEARCH_ITEMS: &[SearchItemData; 48] = &[
         c_type: CommandType::Function,
         alias: Some("get_sqrt_x96_from_price, sqrt_from_price"),
         params: Some("get_sqrt_ratio_from_price(price: `float128`)"),
-        example: Some("get_sqrt_ratio_from_price(0.0003)  // sqrt priceX96 (1372272022653615573403678740)"),
+        example: Some("get_sqrt_ratio_from_price(0.0003)   // sqrt priceX96 (1372272022653615573403678740)"),
         desc: "Computes the sqrtPrice of a Uniswap V3 pool given a price (ratio between tokens, accounting for its decimals).",
     },
     SearchItemData {
@@ -470,7 +470,16 @@ pub static SEARCH_ITEMS: &[SearchItemData; 48] = &[
         c_type: CommandType::Function,
         alias: Some("tick_from_price"),
         params: Some("get_tick_from_price(price: `float128`)"),
-        example: Some("get_tick_from_price(0.0003)  // tick (-81122)"),
+        example: Some("get_tick_from_price(0.0003)   // tick (-81122)"),
+        desc: "Computes the tick of a Uniswap V3 pool given a price (ratio between tokens, accounting for its decimals).\n Note that the tick may need to be adjusted basead on the pool's tick spacing.",
+    },
+    SearchItemData {
+        id: 48,
+        command: "get_pool_tick",
+        c_type: CommandType::Function,
+        alias: Some("get_tick_from_spacing, get_tick_with_spacing"),
+        params: Some("get_pool_tick(tick: `i32`, tick_spacing: `u24`)"),
+        example: Some("get_pool_tick(-887272, 10)   // tick (-887270)\nget_pool_tick(887272, 200)   // tick (887200)"),
         desc: "Computes the tick of a Uniswap V3 pool given a price (ratio between tokens, accounting for its decimals).\n Note that the tick may need to be adjusted basead on the pool's tick spacing.",
     },
     // TODO: fix calculation
